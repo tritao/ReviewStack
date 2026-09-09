@@ -13,6 +13,7 @@ import {
   gitHubPullRequestSelectedVersionIndexAtom,
   gitHubPullRequestVersionsAtom,
 } from './jotai';
+import {isReviewProgressComplete, setReviewProgressComplete} from './reviewProgress';
 import {updateReviewURL} from './reviewURL';
 import {shortOid} from './utils';
 import {ActionList, ActionMenu, Button, ButtonGroup} from '@primer/react';
@@ -49,6 +50,23 @@ export default function PullRequestReviewMode(): React.ReactElement {
       updateReviewURL({mode: 'commit', commitID: commit.commit});
     }
   };
+  const firstUnreviewedIndex = commits.findIndex(
+    commit => !isReviewProgressComplete('commit', commit.commit),
+  );
+  const markReviewedAndContinue = () => {
+    const commit = commits[selectedIndex];
+    if (commit == null) {
+      return;
+    }
+    setReviewProgressComplete('commit', commit.commit, true);
+    const nextIndex = commits.findIndex(
+      (candidate, index) =>
+        index > selectedIndex && !isReviewProgressComplete('commit', candidate.commit),
+    );
+    if (nextIndex !== -1) {
+      selectCommit(nextIndex);
+    }
+  };
   useCommand('PreviousCommit', () => selectCommit(selectedIndex - 1));
   useCommand('NextCommit', () => selectCommit(selectedIndex + 1));
 
@@ -65,7 +83,15 @@ export default function PullRequestReviewMode(): React.ReactElement {
           variant={target.type === 'commit' ? 'primary' : 'default'}
           title="Review one commit from this version at a time"
           disabled={commits.length === 0}
-          onClick={() => selectCommit(selectedIndex === -1 ? commits.length - 1 : selectedIndex)}>
+          onClick={() =>
+            selectCommit(
+              selectedIndex === -1
+                ? firstUnreviewedIndex === -1
+                  ? 0
+                  : firstUnreviewedIndex
+                : selectedIndex,
+            )
+          }>
           Commit
         </Button>
       </ButtonGroup>
@@ -99,6 +125,9 @@ export default function PullRequestReviewMode(): React.ReactElement {
             disabled={selectedIndex === -1 || selectedIndex >= commits.length - 1}
             onClick={() => selectCommit(selectedIndex + 1)}>
             Next
+          </Button>
+          <Button variant="primary" onClick={markReviewedAndContinue}>
+            Reviewed → next
           </Button>
         </>
       )}

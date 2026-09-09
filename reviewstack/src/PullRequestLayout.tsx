@@ -8,15 +8,20 @@
 import type {AllDrawersState} from 'shared/Drawers';
 
 import CenteredSpinner from './CenteredSpinner';
+import CommitReviewRail from './CommitReviewRail';
 import {useCommand} from './KeyboardShortcuts';
 import PullRequest from './PullRequest';
 import PullRequestHeader from './PullRequestHeader';
 import PullRequestTimeline from './PullRequestTimeline';
 import PullRequestTimelineCommentInput from './PullRequestTimelineCommentInput';
-import {gitHubOrgAndRepoAtom, gitHubPullRequestIDAtom} from './jotai';
-import {CommentDiscussionIcon} from '@primer/octicons-react';
+import {
+  gitHubOrgAndRepoAtom,
+  gitHubPullRequestIDAtom,
+  gitHubPullRequestReviewTargetAtom,
+} from './jotai';
+import {CommentDiscussionIcon, GitCommitIcon} from '@primer/octicons-react';
 import {Box, Text} from '@primer/react';
-import {atom, useSetAtom} from 'jotai';
+import {atom, useAtomValue, useSetAtom} from 'jotai';
 import React, {Component, Suspense, useEffect, useState} from 'react';
 import {Drawers} from 'shared/Drawers';
 
@@ -41,6 +46,7 @@ export default function PullRequestLayout({
   number: number;
 }): React.ReactElement {
   const [isNarrow, setIsNarrow] = useState(() => window.matchMedia('(max-width: 600px)').matches);
+  const reviewTarget = useAtomValue(gitHubPullRequestReviewTargetAtom);
   const setOrgAndRepo = useSetAtom(gitHubOrgAndRepoAtom);
   const setPullRequestID = useSetAtom(gitHubPullRequestIDAtom);
 
@@ -60,6 +66,12 @@ export default function PullRequestLayout({
   }, []);
 
   const setDrawerState = useSetAtom(drawerStateAtom);
+  useEffect(() => {
+    setDrawerState(state => ({
+      ...state,
+      left: {...state.left, collapsed: reviewTarget.type !== 'commit'},
+    }));
+  }, [reviewTarget.type, setDrawerState]);
   useCommand('ToggleSidebar', () => {
     setDrawerState(state => ({
       ...state,
@@ -96,21 +108,46 @@ export default function PullRequestLayout({
               </Box>
             </Box>
           </Drawers>
+        ) : reviewTarget.type === 'commit' ? (
+          <Drawers
+            drawerState={drawerStateAtom}
+            errorBoundary={ErrorBoundary}
+            leftLabel={<CommitRailLabel />}
+            left={<CommitReviewRail />}
+            rightLabel={<ReviewDrawerLabel />}
+            right={<TimelineDrawer />}>
+            <ReviewWorkspace />
+          </Drawers>
         ) : (
           <Drawers
             drawerState={drawerStateAtom}
             errorBoundary={ErrorBoundary}
             rightLabel={<ReviewDrawerLabel />}
             right={<TimelineDrawer />}>
-            <Box display="flex" flexDirection="row">
-              <Box className="reviewstack-pr-workspace" overflow="auto">
-                <PullRequest />
-              </Box>
-            </Box>
+            <ReviewWorkspace />
           </Drawers>
         )}
       </Suspense>
     </Box>
+  );
+}
+
+function ReviewWorkspace() {
+  return (
+    <Box display="flex" flexDirection="row">
+      <Box className="reviewstack-pr-workspace" overflow="auto">
+        <PullRequest />
+      </Box>
+    </Box>
+  );
+}
+
+function CommitRailLabel() {
+  return (
+    <>
+      <GitCommitIcon />
+      <Text className="drawer-label-text">Commits</Text>
+    </>
   );
 }
 

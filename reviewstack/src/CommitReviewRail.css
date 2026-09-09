@@ -1,0 +1,42 @@
+.commit-review-rail {
+  box-sizing: border-box;
+  height: 100%;
+  overflow: auto;
+  padding: 12px;
+}
+
+.commit-review-rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-block: 12px;
+}
+
+.commit-review-rail-item {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.commit-review-rail-item:hover {
+  background: var(--list-hover-background);
+}
+
+.commit-review-rail-item-current {
+  border-color: var(--focus-border);
+  background: var(--list-hover-background);
+}
+
+.commit-review-rail-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

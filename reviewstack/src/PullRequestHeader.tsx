@@ -9,7 +9,11 @@ import PullRequestStack from './PullRequestStack';
 import PullRequestStateLabel from './PullRequestStateLabel';
 import PullRequestVersions from './PullRequestVersions';
 import TrustedRenderedMarkdown from './TrustedRenderedMarkdown';
-import {gitHubPullRequestAtom, gitHubPullRequestComparableVersionsAtom} from './jotai';
+import {
+  gitHubPullRequestAtom,
+  gitHubPullRequestComparableVersionsAtom,
+  gitHubPullRequestReviewTargetAtom,
+} from './jotai';
 import {useReviewProgress} from './reviewProgress';
 import {Box, Checkbox, Link, Text} from '@primer/react';
 import {useAtomValue} from 'jotai';
@@ -18,7 +22,11 @@ import {Suspense} from 'react';
 export default function PullRequestHeader(): React.ReactElement | null {
   const pullRequest = useAtomValue(gitHubPullRequestAtom);
   const comparableVersions = useAtomValue(gitHubPullRequestComparableVersionsAtom);
-  const reviewID = comparableVersions?.afterCommitID ?? String(pullRequest?.number ?? 'unknown');
+  const reviewTarget = useAtomValue(gitHubPullRequestReviewTargetAtom);
+  const reviewID =
+    reviewTarget.type === 'commit'
+      ? reviewTarget.commitID
+      : comparableVersions?.afterCommitID ?? String(pullRequest?.number ?? 'unknown');
   const [reviewed, toggleReviewed] = useReviewProgress('commit', reviewID);
 
   if (pullRequest == null) {
@@ -61,20 +69,22 @@ export default function PullRequestHeader(): React.ReactElement | null {
         <Suspense fallback={null}>
           <PullRequestVersions />
         </Suspense>
-        <Box
-          as="label"
-          className="reviewstack-reviewed-label"
-          display="flex"
-          alignItems="center"
-          gridGap={1}
-          title="Mark the selected review revision as reviewed">
-          <Checkbox
-            checked={reviewed}
-            onChange={toggleReviewed}
-            aria-label="Mark selected revision as reviewed"
-          />
-          <Text className="reviewstack-reviewed-text">Reviewed</Text>
-        </Box>
+        {reviewTarget.type === 'layer' && (
+          <Box
+            as="label"
+            className="reviewstack-reviewed-label"
+            display="flex"
+            alignItems="center"
+            gridGap={1}
+            title="Mark the selected review revision as reviewed">
+            <Checkbox
+              checked={reviewed}
+              onChange={toggleReviewed}
+              aria-label="Mark selected revision as reviewed"
+            />
+            <Text className="reviewstack-reviewed-text">Reviewed</Text>
+          </Box>
+        )}
       </Box>
     </Box>
   );
