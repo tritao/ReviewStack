@@ -84,8 +84,10 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
     }
   });
   await page.goto(new URL('tritao/ReviewStack/pull/1', baseURL).toString());
-  await expect(page.getByRole('button', {name: 'Reviewers', exact: true})).toBeVisible();
-  await expect(page.getByRole('button', {name: 'Labels', exact: true})).toBeVisible();
+  // The workflow token is read-only, so these are field labels in CI and
+  // action buttons for maintainers with write permission.
+  await expect(page.getByText('Reviewers', {exact: true}).first()).toBeVisible();
+  await expect(page.getByText('Labels', {exact: true}).first()).toBeVisible();
   await expect(page.locator('.split-diff-view-file-header').first()).toBeVisible();
   await expect(page.getByText(/^\+\d+$/).first()).toBeVisible();
   await expect(page.getByRole('button', {name: 'Layer', exact: true})).toBeVisible();
