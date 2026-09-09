@@ -130,9 +130,9 @@ yarn test:e2e
 ```
 
 The browser smoke test verifies the login and OAuth callback routes. Set
-`REVIEWSTACK_E2E_GITHUB_TOKEN` to a dedicated read-only token to additionally
-exercise PR 29700's Layer and Commit modes; CI skips only that authenticated
-case when the secret is absent.
+`REVIEWSTACK_E2E_GITHUB_TOKEN` to a dedicated read-only token for this repository
+to additionally exercise the permanent fixture PR's Layer and Commit modes; CI
+skips only that authenticated case when the secret is absent.
 
 The workspace contains:
 
