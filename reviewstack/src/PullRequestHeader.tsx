@@ -14,11 +14,7 @@ import {Box, Link, Text} from '@primer/react';
 import {useAtomValue} from 'jotai';
 import {Suspense} from 'react';
 
-type Props = {
-  height: number;
-};
-
-export default function PullRequestHeader({height}: Props): React.ReactElement | null {
+export default function PullRequestHeader(): React.ReactElement | null {
   const pullRequest = useAtomValue(gitHubPullRequestAtom);
 
   if (pullRequest == null) {
@@ -29,7 +25,8 @@ export default function PullRequestHeader({height}: Props): React.ReactElement |
 
   return (
     <Box
-      height={height}
+      className="reviewstack-pr-header"
+      height="var(--reviewstack-pr-header-height)"
       borderBottomWidth={1}
       borderBottomStyle="solid"
       borderBottomColor="border.default"
@@ -37,13 +34,13 @@ export default function PullRequestHeader({height}: Props): React.ReactElement |
       flexDirection="column"
       gridGap={2}
       padding={3}>
-      <Box fontWeight="bold">
+      <Box className="reviewstack-pr-title" fontWeight="bold">
         #{number} <TrustedRenderedMarkdown trustedHTML={titleHTML} inline={true} />{' '}
         <Link href={url} target="_blank">
           <Text fontWeight="normal">(view on GitHub)</Text>
         </Link>
       </Box>
-      <Box display="flex" gridGap={2}>
+      <Box className="reviewstack-pr-controls" gridGap={2}>
         <PullRequestStateLabel reviewDecision={reviewDecision ?? null} state={state} />
         <PullRequestStack />
         {/*
@@ -64,3 +61,4 @@ export default function PullRequestHeader({height}: Props): React.ReactElement |
     </Box>
   );
 }
+import './PullRequestHeader.css';

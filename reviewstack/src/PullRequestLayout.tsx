@@ -22,8 +22,6 @@ import {Drawers} from 'shared/Drawers';
 
 import './PullRequestLayout.css';
 
-const HEADER_HEIGHT = 100;
-const TOTAL_HEADER_HEIGHT = HEADER_HEIGHT + APP_HEADER_HEIGHT;
 const COMMENT_INPUT_HEIGHT = 125;
 
 const drawerStateAtom = atom<AllDrawersState>({
@@ -62,8 +60,8 @@ export default function PullRequestLayout({
   });
 
   return (
-    <Box>
-      <PullRequestHeader height={HEADER_HEIGHT} />
+    <Box className="reviewstack-pr-layout">
+      <PullRequestHeader />
       <Suspense fallback={<CenteredSpinner message="Loading pull request..." />}>
         <Drawers
           drawerState={drawerStateAtom}
@@ -71,7 +69,7 @@ export default function PullRequestLayout({
           rightLabel={<Text className="drawer-label-text">...</Text>}
           right={<TimelineDrawer />}>
           <Box display="flex" flexDirection="row">
-            <Box height={`calc(100vh - ${TOTAL_HEADER_HEIGHT}px)`} overflow="auto">
+            <Box className="reviewstack-pr-workspace" overflow="auto">
               <PullRequest />
             </Box>
           </Box>
@@ -83,7 +81,7 @@ export default function PullRequestLayout({
 
 function TimelineDrawer() {
   return (
-    <Box display="flex" flexDirection="column" height={`calc(100vh - ${TOTAL_HEADER_HEIGHT}px)`}>
+    <Box className="reviewstack-pr-timeline" display="flex" flexDirection="column">
       <Box height={`calc(100% - ${COMMENT_INPUT_HEIGHT}px)`} overflow="auto">
         <PullRequestTimeline />
       </Box>

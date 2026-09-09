@@ -1,0 +1,40 @@
+.reviewstack-pr-header {
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.reviewstack-pr-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reviewstack-pr-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+@media (max-width: 600px) {
+  .reviewstack-pr-header {
+    padding: 12px !important;
+  }
+
+  .reviewstack-pr-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .reviewstack-pr-controls {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .reviewstack-pr-controls > * {
+    flex: none;
+  }
+}

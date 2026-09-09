@@ -52,11 +52,15 @@ export default function PullRequestReviewMode(): React.ReactElement {
   return (
     <>
       <ButtonGroup>
-        <Button variant={target.type === 'layer' ? 'primary' : 'default'} onClick={selectLayer}>
+        <Button
+          title="Review only the changes introduced by this pull-request layer"
+          variant={target.type === 'layer' ? 'primary' : 'default'}
+          onClick={selectLayer}>
           Layer
         </Button>
         <Button
           variant={target.type === 'commit' ? 'primary' : 'default'}
+          title="Review one commit from this version at a time"
           disabled={commits.length === 0}
           onClick={() => selectCommit(selectedIndex === -1 ? commits.length - 1 : selectedIndex)}>
           Commit

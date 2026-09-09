@@ -9,6 +9,16 @@
   --drawer-label-size: 14px;
 }
 
+.reviewstack-pr-layout {
+  --reviewstack-pr-header-height: 100px;
+  --reviewstack-workspace-height: calc(100vh - 160px);
+}
+
+.reviewstack-pr-workspace,
+.reviewstack-pr-timeline {
+  height: var(--reviewstack-workspace-height);
+}
+
 .reviewstack .drawer-label-text {
   margin-left: 10px;
 }
@@ -16,4 +26,11 @@
 .reviewstack .drawer-left > div:nth-child(3),
 .reviewstack .drawer-right > div:nth-child(3) {
   width: 100%;
+}
+
+@media (max-width: 600px) {
+  .reviewstack-pr-layout {
+    --reviewstack-pr-header-height: 132px;
+    --reviewstack-workspace-height: calc(100vh - 192px);
+  }
 }
