@@ -46,6 +46,7 @@ import {unwrap} from 'shared/utils';
  * and defer rendering until the user explicitly requests it.
  */
 const LARGE_DIFF_LINE_THRESHOLD = 500;
+const DIFF_RENDER_BATCH_SIZE = 400;
 
 /**
  * It is paramount that the blob for each non-null GitObjectID is written to
@@ -235,6 +236,8 @@ const SplitDiffViewTable = React.memo(
     const [expandedSeparators, setExpandedSeparators] = useState<Readonly<Set<string>>>(
       () => new Set(),
     );
+    const [visibleRowLimit, setVisibleRowLimit] = useState(DIFF_RENDER_BATCH_SIZE);
+    useEffect(() => setVisibleRowLimit(DIFF_RENDER_BATCH_SIZE), [commitIDs?.after, path]);
     const onExpand = useCallback(
       (key: string) => {
         const amendedSet = new Set(expandedSeparators);
@@ -350,6 +353,7 @@ const SplitDiffViewTable = React.memo(
       }
     }
 
+    const remainingRows = Math.max(0, rows.length - visibleRowLimit);
     return (
       <table className="SplitDiffView-hunk-table" onClick={onShowNewCommentInput}>
         <colgroup>
@@ -358,7 +362,19 @@ const SplitDiffViewTable = React.memo(
           <col width={50} />
           <col width={'50%'} />
         </colgroup>
-        <tbody>{rows}</tbody>
+        <tbody>
+          {rows.slice(0, visibleRowLimit)}
+          {remainingRows > 0 && (
+            <SeparatorRow>
+              <Button
+                variant="invisible"
+                onClick={() => setVisibleRowLimit(limit => limit + DIFF_RENDER_BATCH_SIZE)}>
+                Show next {Math.min(DIFF_RENDER_BATCH_SIZE, remainingRows)} rows · {remainingRows}{' '}
+                remaining
+              </Button>
+            </SeparatorRow>
+          )}
+        </tbody>
       </table>
     );
   },
@@ -571,6 +587,9 @@ function HunkSeparator({
   // space to display the separator than it does to display the text (though
   // admittedly fetching the collapsed text is an async operation).
   const label = numLines === 1 ? 'Expand 1 line' : `Expand ${numLines} lines`;
+  if (numLines <= 0) {
+    return <></>;
+  }
   return (
     <SeparatorRow>
       <Box display="inline-block" onClick={onExpand} padding={1} sx={HUNK_SEPARATOR_SX}>
