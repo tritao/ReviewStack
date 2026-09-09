@@ -76,6 +76,7 @@ export function useSplitDiffViewData(
   scopeName: string | null,
   colorMode: 'day' | 'night',
   isPullRequest: boolean,
+  retryAttempt = 0,
 ): SplitDiffViewLoadableState {
   // Use Jotai for commitIDs (migrated atom)
   const loadableCommitIDsAtom = useMemo(() => loadable(gitHubDiffCommitIDsAtom), []);
@@ -122,16 +123,14 @@ export function useSplitDiffViewData(
         sideStr === DiffSide.Left
           ? DiffSide.Left
           : sideStr === DiffSide.Right
-            ? DiffSide.Right
-            : null;
+          ? DiffSide.Right
+          : null;
       if (isNaN(lineNumber) || side == null) {
         return;
       }
 
       // Check if we can add a comment using the Jotai atom
-      const canAddComment = store.get(
-        gitHubPullRequestCanAddCommentAtom({lineNumber, path, side}),
-      );
+      const canAddComment = store.get(gitHubPullRequestCanAddCommentAtom({lineNumber, path, side}));
       if (!canAddComment) {
         // Check why we can't add a comment and show appropriate message
         // Only check if versions are loaded
@@ -179,8 +178,12 @@ export function useSplitDiffViewData(
     [path, before, after, scopeName, colorMode],
   );
   const diffAndTokenizeLoadableAtom = useMemo(
-    () => loadable(diffAndTokenizeAtom(diffAndTokenizeParams)),
-    [diffAndTokenizeParams],
+    () => {
+      // Recreate the loadable after a targeted cache eviction.
+      void retryAttempt;
+      return loadable(diffAndTokenizeAtom(diffAndTokenizeParams));
+    },
+    [diffAndTokenizeParams, retryAttempt],
   );
   const diffAndTokenizeLoadable = useAtomValue(diffAndTokenizeLoadableAtom);
 

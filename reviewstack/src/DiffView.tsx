@@ -61,13 +61,13 @@ export default function DiffView({diff, isPullRequest}: {diff: Diff; isPullReque
           const key = `${change.basePath}/${name}`;
           return (
             <ViewportDiffFile key={key} path={getPathForDisplay(change)}>
-              <DiffFileErrorBoundary path={getPathForDisplay(change)}>
+              <RetryableDiffFile path={getPathForDisplay(change)} change={change}>
                 <Suspense fallback={<DiffFileSkeleton />}>
                   <Box paddingY={1}>
                     <ChangeDisplay change={change} isPullRequest={isPullRequest} />
                   </Box>
                 </Suspense>
-              </DiffFileErrorBoundary>
+              </RetryableDiffFile>
             </ViewportDiffFile>
           );
         })}
@@ -121,7 +121,7 @@ function getPathForDisplay(change: CommitChange): string {
 }
 
 class DiffFileErrorBoundary extends Component<
-  {children: React.ReactNode; path: string},
+  {children: React.ReactNode; path: string; onRetry: () => void},
   {error: unknown}
 > {
   state: {error: unknown} = {error: null};
@@ -144,13 +144,40 @@ class DiffFileErrorBoundary extends Component<
         <FileHeader path={this.props.path} />
         <Flash variant="warning">
           <Text>Could not load this file: {message}</Text>{' '}
-          <Button size="small" onClick={() => window.location.reload()}>
-            Retry
+          <Button size="small" onClick={this.props.onRetry}>
+            Retry file
           </Button>
         </Flash>
       </Box>
     );
   }
+}
+
+function RetryableDiffFile({
+  path,
+  change,
+  children,
+}: {
+  path: string;
+  change: CommitChange;
+  children: React.ReactNode;
+}): React.ReactElement {
+  const [attempt, setAttempt] = useState(0);
+  const retry = () => {
+    if (change.type === 'modify') {
+      gitHubBlobAtom.remove(change.before.oid);
+      gitHubBlobAtom.remove(change.after.oid);
+      fileContentsDeltaAtom.remove({before: change.before.oid, after: change.after.oid, path});
+    } else {
+      gitHubBlobAtom.remove(change.entry.oid);
+    }
+    setAttempt(value => value + 1);
+  };
+  return (
+    <DiffFileErrorBoundary key={attempt} path={path} onRetry={retry}>
+      {children}
+    </DiffFileErrorBoundary>
+  );
 }
 
 function ChangeDisplay({change, isPullRequest}: {change: CommitChange; isPullRequest: boolean}) {

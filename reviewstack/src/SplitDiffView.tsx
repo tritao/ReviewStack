@@ -21,7 +21,7 @@ import type {HighlightedToken} from 'shared/textmate-lib/tokenize';
 import LargeDiffPlaceholder from './LargeDiffPlaceholder';
 import {FileHeader} from './SplitDiffFileHeader';
 import SplitDiffRow from './SplitDiffRow';
-import {lineRangeAtom} from './diffServiceClient';
+import {diffAndTokenizeAtom, lineRangeAtom} from './diffServiceClient';
 import {DiffSide} from './generated/graphql';
 import {grammars, languages} from './generated/textmate/TextMateGrammarManifest';
 import {primerColorModeAtom} from './jotai/atoms';
@@ -82,6 +82,7 @@ export default function SplitDiffView({
 }: Props): React.ReactElement {
   const [open, setOpen] = useState(true);
   const [diffLoaded, setDiffLoaded] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
   // Reset diffLoaded state when the file path changes
   useEffect(() => {
@@ -96,7 +97,15 @@ export default function SplitDiffView({
   const colorMode = useAtomValue(primerColorModeAtom);
 
   // Use the bridged Jotai hook instead of useRecoilValueLoadable
-  const loadable = useSplitDiffViewData(path, before, after, scopeName, colorMode, isPullRequest);
+  const loadable = useSplitDiffViewData(
+    path,
+    before,
+    after,
+    scopeName,
+    colorMode,
+    isPullRequest,
+    retryAttempt,
+  );
 
   if (loadable.state === 'loading') {
     return (
@@ -117,7 +126,15 @@ export default function SplitDiffView({
       <Box borderWidth="1px" borderStyle="solid" borderColor="border.default" borderRadius={2}>
         <FileHeader path={path} open={open} onChangeOpen={open => setOpen(open)} />
         <Box padding={3} color="danger.fg">
-          <Text>Error loading diff: {errorMessage}</Text>
+          <Text>Error loading diff: {errorMessage}</Text>{' '}
+          <Button
+            size="small"
+            onClick={() => {
+              diffAndTokenizeAtom.remove({path, before, after, scopeName, colorMode});
+              setRetryAttempt(value => value + 1);
+            }}>
+            Retry file
+          </Button>
         </Box>
       </Box>
     );
