@@ -24,21 +24,23 @@ import {notEmpty} from 'shared/utils';
 
 export default function UserHomePage(): React.ReactElement {
   return (
-    <Suspense fallback={<CenteredSpinner />}>
-      <UserHomePageRoot />
-    </Suspense>
+    <Box className="reviewstack-home">
+      <QuickOpen />
+      <Suspense fallback={<CenteredSpinner message="Loading your GitHub dashboard…" />}>
+        <UserHomePageRoot />
+      </Suspense>
+    </Box>
   );
 }
 
 function UserHomePageRoot(): React.ReactElement {
   const data = useAtomValue(gitHubUserHomePageDataAtom);
   return (
-    <Box className="reviewstack-home">
-      <QuickOpen />
+    <>
       <ReviewRequestsForUser reviewRequests={data?.search.nodes ?? []} />
       <PullRequestsForUser pullRequests={data?.viewer.pullRequests.nodes ?? []} />
       <RepositoriesForUser repos={data?.viewer.repositories.nodes ?? []} />
-    </Box>
+    </>
   );
 }
 
