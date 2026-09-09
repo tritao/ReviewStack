@@ -7,6 +7,7 @@
     "textmate"
   ],
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@babel/runtime": "^7.21.0",
     "@eslint/js": "^9.26.0",
     "@types/eslint__js": "^8.42.3",
@@ -24,7 +25,9 @@
     "prebuild": "yarn prepare-generated",
     "build": "yarn workspace reviewstack.dev build",
     "pretest": "yarn prepare-generated",
-    "test": "yarn workspace reviewstack test --watchAll=false && node --test oauth-worker/test/*.test.js",
+    "test": "yarn workspace reviewstack test --watchAll=false && node --test oauth-worker/test/*.test.js scripts/*.test.js",
+    "prepare-pages": "node scripts/prepare-pages.js",
+    "test:e2e": "playwright test",
     "lint": "eslint reviewstack/src reviewstack.dev/src shared oauth-worker",
     "eslint": "eslint reviewstack/src reviewstack.dev/src shared oauth-worker",
     "eslint:fix": "eslint reviewstack/src reviewstack.dev/src shared oauth-worker --fix",

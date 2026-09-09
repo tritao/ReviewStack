@@ -82,9 +82,12 @@ One-time deployment setup:
    `npx wrangler secret put NAME`, then run `npx wrangler deploy`.
 3. Add repository Actions variables `REVIEWSTACK_OAUTH_CLIENT_ID` and
    `REVIEWSTACK_OAUTH_TOKEN_ENDPOINT` (the deployed Worker's `/token` URL),
-   then rebuild Pages. For CI worker deployment, also add the
-   `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets and run
-   the **Deploy OAuth worker** workflow manually.
+   then rebuild Pages.
+4. For automatic worker deployment, add `CLOUDFLARE_API_TOKEN` and
+   `CLOUDFLARE_ACCOUNT_ID` as repository secrets and set the repository variable
+   `CLOUDFLARE_WORKER_CI_ENABLED` to `true`. Worker changes are tested on pull
+   requests and deployed from `main`; the deployed health endpoint is checked
+   before CI succeeds.
 
 Only the `public_repo` OAuth scope is requested. Manual token login remains
 available for private repositories and GitHub Enterprise.
@@ -121,7 +124,15 @@ GitHub.
 yarn test
 yarn lint
 yarn build
+yarn prepare-pages
+yarn playwright install chromium
+yarn test:e2e
 ```
+
+The browser smoke test verifies the login and OAuth callback routes. Set
+`REVIEWSTACK_E2E_GITHUB_TOKEN` to a dedicated read-only token to additionally
+exercise PR 29700's Layer and Commit modes; CI skips only that authenticated
+case when the secret is absent.
 
 The workspace contains:
 

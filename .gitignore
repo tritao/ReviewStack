@@ -1,4 +1,6 @@
 node_modules
+playwright-report/
+test-results/
 isl-server/coverage
 shared/coverage/
 vscode-build/
