@@ -63,13 +63,27 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   }, token);
   const page = await context.newPage();
   const errors = [];
+  const reactWarnings = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => {
+    if (
+      message.type() === 'warning' &&
+      /unique "key" prop|Unknown event handler property|not implemented/.test(message.text())
+    ) {
+      reactWarnings.push(message.text());
+    }
+  });
   await page.goto(new URL('tritao/ReviewStack/pull/1', baseURL).toString());
+  await expect(page.getByRole('button', {name: 'Reviewers', exact: true})).toBeVisible();
+  await expect(page.getByRole('button', {name: 'Labels', exact: true})).toBeVisible();
+  await expect(page.locator('.split-diff-view-file-header').first()).toBeVisible();
+  await expect(page.getByText(/^\+\d+$/).first()).toBeVisible();
   await expect(page.getByRole('button', {name: 'Layer', exact: true})).toBeVisible();
   const commit = page.getByRole('button', {name: 'Commit', exact: true});
   await expect(commit).toBeEnabled();
   await commit.click();
   await expect(page).toHaveURL(/(?:\?|&)mode=commit(?:&|$)/);
   expect(errors).toEqual([]);
+  expect(reactWarnings).toEqual([]);
   await context.close();
 });
