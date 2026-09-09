@@ -104,8 +104,9 @@ The workspace contains:
 - `shared/` — shared diff, drawer, keyboard, and TextMate utilities
 - `textmate/` — grammar generation support
 
-Generated GraphQL and TextMate artifacts are checked in. When their sources
-change, use the package-specific `codegen` and `textmate` scripts before
+TextMate grammar artifacts are checked in. The ignored GraphQL types and
+TextMate WASM runtime are prepared automatically before start, test, and build.
+When grammar sources change, use the package-specific `textmate` script before
 committing.
 
 ## Relationship to upstream

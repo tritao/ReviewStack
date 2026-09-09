@@ -18,8 +18,12 @@
     "typescript-eslint": "^8.32.0"
   },
   "scripts": {
+    "prepare-generated": "node scripts/prepare-generated.js",
+    "prestart": "yarn prepare-generated",
     "start": "yarn workspace reviewstack.dev start",
+    "prebuild": "yarn prepare-generated",
     "build": "yarn workspace reviewstack.dev build",
+    "pretest": "yarn prepare-generated",
     "test": "yarn workspace reviewstack test --watchAll=false",
     "lint": "eslint reviewstack/src reviewstack.dev/src shared",
     "eslint": "eslint reviewstack/src reviewstack.dev/src shared",
