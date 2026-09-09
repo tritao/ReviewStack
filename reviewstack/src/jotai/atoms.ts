@@ -178,7 +178,10 @@ export const gitHubTokenListenerAtom = atom(
             if (event.storageArea !== localStorage) {
               return;
             }
-            if (event.key === null || (event.key === GITHUB_TOKEN_PROPERTY && event.newValue == null)) {
+            if (
+              event.key === null ||
+              (event.key === GITHUB_TOKEN_PROPERTY && event.newValue == null)
+            ) {
               window.removeEventListener('storage', handler);
               resolve(null);
             }
@@ -226,15 +229,14 @@ export const gitHubTokenPersistenceAtom = atom(
     // IndexedDB deletion itself waits for every connection's versionchange
     // handler. Its success event is the acknowledgement; no timing delay is
     // required for BroadcastChannel delivery.
-    const promise: Promise<string | null> = clearAllLocalData()
-      .then(() => {
-        // Restore hostname and set new token if provided
-        if (token != null && hostname != null) {
-          localStorage.setItem(GITHUB_HOSTNAME_PROPERTY, hostname);
-          localStorage.setItem(GITHUB_TOKEN_PROPERTY, token);
-        }
-        return token;
-      });
+    const promise: Promise<string | null> = clearAllLocalData().then(() => {
+      // Restore hostname and set new token if provided
+      if (token != null && hostname != null) {
+        localStorage.setItem(GITHUB_HOSTNAME_PROPERTY, hostname);
+        localStorage.setItem(GITHUB_TOKEN_PROPERTY, token);
+      }
+      return token;
+    });
 
     // Set loading state
     set(gitHubTokenStateAtom, {state: 'loading', promise});
@@ -251,10 +253,7 @@ export const gitHubTokenPersistenceAtom = atom(
  * The hostname for the GitHub instance. Defaults to 'github.com' for consumer
  * GitHub, but can be set to an enterprise hostname.
  */
-export const gitHubHostnameAtom = atomWithStorage<string>(
-  GITHUB_HOSTNAME_PROPERTY,
-  'github.com',
-);
+export const gitHubHostnameAtom = atomWithStorage<string>(GITHUB_HOSTNAME_PROPERTY, 'github.com');
 
 /**
  *
@@ -376,9 +375,10 @@ export type GitHubPullRequestParams = {
  */
 export const gitHubPullRequestRefreshTriggerAtom = atomFamily(
   (_params: GitHubPullRequestParams) => atom<number>(0),
-  (a, b) => a.orgAndRepo.org === b.orgAndRepo.org &&
-            a.orgAndRepo.repo === b.orgAndRepo.repo &&
-            a.number === b.number,
+  (a, b) =>
+    a.orgAndRepo.org === b.orgAndRepo.org &&
+    a.orgAndRepo.repo === b.orgAndRepo.repo &&
+    a.number === b.number,
 );
 
 /**
@@ -397,7 +397,7 @@ export const gitHubPullRequestForParamsAtom = atomFamily(
       const token = localStorage.getItem('github.token');
       if (token == null) {
         // Return a never-settling promise to indicate we're waiting for auth
-         
+
         return new Promise<PullRequest | null>(() => {});
       }
 
@@ -409,9 +409,10 @@ export const gitHubPullRequestForParamsAtom = atomFamily(
 
       return cachingClient.getPullRequest(params.number);
     }),
-  (a, b) => a.orgAndRepo.org === b.orgAndRepo.org &&
-            a.orgAndRepo.repo === b.orgAndRepo.repo &&
-            a.number === b.number,
+  (a, b) =>
+    a.orgAndRepo.org === b.orgAndRepo.org &&
+    a.orgAndRepo.repo === b.orgAndRepo.repo &&
+    a.number === b.number,
 );
 
 // =============================================================================
@@ -630,9 +631,7 @@ export type ComparableVersions = {
   afterCommitID: GitObjectID;
 };
 
-export type PullRequestReviewTarget =
-  | {type: 'layer'}
-  | {type: 'commit'; commitID: GitObjectID};
+export type PullRequestReviewTarget = {type: 'layer'} | {type: 'commit'; commitID: GitObjectID};
 
 /** The primary review unit; version comparison remains a separate concern. */
 export const gitHubPullRequestReviewTargetAtom = atom<PullRequestReviewTarget>({type: 'layer'});
@@ -891,25 +890,51 @@ export const gitHubPullRequestVersionDiffStatsAtom = atom<
       ? change.before.mode === 57344 || change.after.mode === 57344
       : change.entry.mode === 57344;
   const renames = findExactRenames(diff.diff);
-  const renamedIndexes = new Set(
-    renames.flatMap(rename => [rename.removeIndex, rename.addIndex]),
-  );
-  const files = diff.diff.filter(
-    (change, index) => !renamedIndexes.has(index) && !isSubmoduleChange(change),
-  ).map(change => ({
-    before:
-      change.type === 'add'
-        ? null
-        : change.type === 'remove'
+  const renamedIndexes = new Set(renames.flatMap(rename => [rename.removeIndex, rename.addIndex]));
+  const files = diff.diff
+    .filter((change, index) => !renamedIndexes.has(index) && !isSubmoduleChange(change))
+    .map(change => ({
+      before:
+        change.type === 'add'
+          ? null
+          : change.type === 'remove'
           ? change.entry.oid
           : change.before.oid,
-    after:
-      change.type === 'remove'
-        ? null
-        : change.type === 'add'
+      after:
+        change.type === 'remove'
+          ? null
+          : change.type === 'add'
           ? change.entry.oid
           : change.after.oid,
-  }));
+    }));
+
+  // The diff workers intentionally do not receive GitHub credentials. Their
+  // CachingGitHubClient can therefore only read blobs already persisted by
+  // the authenticated main-thread client. Preload each unique blob before
+  // dispatching the statistics request, with bounded concurrency to avoid a
+  // large PR creating an unbounded burst of REST requests.
+  const blobOIDs = new Set<GitObjectID>();
+  files.forEach(({before, after}) => {
+    if (before != null) {
+      blobOIDs.add(before);
+    }
+    if (after != null) {
+      blobOIDs.add(after);
+    }
+  });
+  const pendingBlobOIDs = [...blobOIDs];
+  const fetchNextBlob = async (): Promise<void> => {
+    const oid = pendingBlobOIDs.pop();
+    if (oid == null) {
+      return;
+    }
+    await get(gitHubBlobAtom(oid));
+    return fetchNextBlob();
+  };
+  await Promise.all(
+    Array.from({length: Math.min(8, pendingBlobOIDs.length)}, () => fetchNextBlob()),
+  );
+
   const key = files.map(file => `${file.before ?? ''}:${file.after ?? ''}`).join('|');
   const stats = await get(diffStatsAtom({key, files}));
   const modeChanges = diff.diff.filter(
@@ -991,15 +1016,11 @@ const gitHubPullRequestForcePushesAtom = atom<ForcePushEvent[]>(get => {
           beforeCommit: beforeCommit.oid,
           beforeCommittedDate: beforeCommit.committedDate,
           beforeTree: beforeCommit.tree.oid,
-          beforeParents: (beforeCommit.parents?.nodes ?? [])
-            .filter(notEmpty)
-            .map(node => node.oid),
+          beforeParents: (beforeCommit.parents?.nodes ?? []).filter(notEmpty).map(node => node.oid),
           afterCommit: afterCommit.oid,
           afterCommittedDate: beforeCommit.committedDate,
           afterTree: afterCommit.tree.oid,
-          afterParents: (afterCommit.parents?.nodes ?? [])
-            .filter(notEmpty)
-            .map(node => node.oid),
+          afterParents: (afterCommit.parents?.nodes ?? []).filter(notEmpty).map(node => node.oid),
         };
       } else {
         return null;
@@ -1117,10 +1138,7 @@ export const gitHubPullRequestVersionsAtom = atom<Promise<Version[]>>(async get 
     // GitHub's PR timeline may omit commits. Devstack v2 metadata records the
     // exact commits owned by this layer, so fetch those IDs explicitly as well.
     const commitOidsToFetch = Array.from(
-      new Set([
-        ...commits.map(commit => commit.oid),
-        ...(currentLayer.commits ?? []),
-      ]),
+      new Set([...commits.map(commit => commit.oid), ...(currentLayer.commits ?? [])]),
     );
 
     // Prefetch all commits upfront to avoid await in loop.
@@ -1532,9 +1550,7 @@ const gitHubPullRequestDiffCommitWithBaseByPathAtom = atomFamily(
         return null;
       }
 
-      const diffWithCommitIDs = await get(
-        gitHubDiffForCommitsAtom({baseCommitID, commitID}),
-      );
+      const diffWithCommitIDs = await get(gitHubDiffForCommitsAtom({baseCommitID, commitID}));
       const diff = diffWithCommitIDs?.diff;
       if (diff == null) {
         return null;
