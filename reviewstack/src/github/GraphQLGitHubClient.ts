@@ -51,6 +51,7 @@ import type {
 } from '../generated/graphql';
 
 import {globalCacheStats} from './GitHubClientStats';
+import {fetchWithRetry} from './fetchWithRetry';
 import {createGraphQLEndpointForHostname} from './gitHubCredentials';
 import queryGraphQL from './queryGraphQL';
 import {
@@ -174,10 +175,14 @@ export default class GraphQLGitHubClient implements GitHubClient {
     const url = `https://api.${this.hostname}/repos/${encodeURIComponent(
       this.organization,
     )}/${encodeURIComponent(this.repositoryName)}/git/blobs/${oid}`;
-    const response = await fetch(url, {
-      headers: this.requestHeaders,
-      method: 'GET',
-    });
+    const response = await fetchWithRetry(
+      url,
+      {
+        headers: this.requestHeaders,
+        method: 'GET',
+      },
+      `fetch blob ${oid}`,
+    );
     ++globalCacheStats.gitHubGetBlob;
 
     const {status} = response;
@@ -299,20 +304,24 @@ export default class GraphQLGitHubClient implements GitHubClient {
     const url = `https://api.${this.hostname}/repos/${encodeURIComponent(
       this.organization,
     )}/${encodeURIComponent(this.repositoryName)}/compare/${base}...${head}`;
-    const response = await fetch(url, {
-      headers: this.requestHeaders,
-      method: 'GET',
-    });
+    const response = await fetchWithRetry(
+      url,
+      {
+        headers: this.requestHeaders,
+        method: 'GET',
+      },
+      'compare commits',
+    );
     ++globalCacheStats.gitHubGetCommitComparison;
 
     // Specifying an invalid `basehead` returns a 404 Not Found.
     const {status} = response;
-    if (status === 403 || status === 404) {
+    if (status === 404) {
       return null;
     }
 
     if (!response.ok) {
-      return Promise.reject(`HTTP request error: ${status}: ${response.statusText}`);
+      throw await githubRestError(response, 'compare commits');
     }
 
     const json = await response.json();

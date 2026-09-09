@@ -6,6 +6,7 @@
  */
 
 import UnauthorizedError from './UnauthorizedError';
+import {fetchWithRetry} from './fetchWithRetry';
 
 export default async function queryGraphQL<TData, TVariables>(
   query: string,
@@ -14,18 +15,44 @@ export default async function queryGraphQL<TData, TVariables>(
   graphQLEndpoint: string,
   signal?: AbortSignal,
 ): Promise<TData> {
-  const response = await fetch(graphQLEndpoint, {
-    headers: requestHeaders,
-    method: 'POST',
-    body: JSON.stringify({query, variables}),
-    signal,
-  });
+  const isMutation = /^\s*mutation\b/.test(query);
+  const response = await fetchWithRetry(
+    graphQLEndpoint,
+    {
+      headers: requestHeaders,
+      method: 'POST',
+      body: JSON.stringify({query, variables}),
+      signal,
+    },
+    'query GitHub',
+    {
+      maxAttempts: isMutation ? 1 : undefined,
+      inspectResponse: async candidate => {
+        if (!candidate.ok) {
+          return false;
+        }
+        const body = await candidate.json().catch(() => null);
+        return (
+          body?.errors?.some?.((error: {type?: unknown}) => error.type === 'RATE_LIMITED') === true
+        );
+      },
+    },
+  );
 
   if (!response.ok) {
     if (response.status === 401) {
       throw new UnauthorizedError(
         'Your GitHub access token has expired or been revoked. Please sign in again.',
       );
+    }
+    if (
+      response.status === 429 ||
+      (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0')
+    ) {
+      const reset = response.headers.get('x-ratelimit-reset');
+      const resetMessage =
+        reset == null ? '' : ` until ${new Date(Number(reset) * 1000).toLocaleString()}`;
+      throw new Error(`GitHub API rate limit exceeded${resetMessage}.`);
     }
     return Promise.reject(`HTTP request error: ${response.status}: ${response.statusText}`);
   }

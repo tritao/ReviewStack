@@ -5,8 +5,10 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import type {GitHubRetryDetail} from './github/fetchWithRetry';
 import type {NotificationMessage} from './jotai/atoms';
 
+import {GITHUB_RETRY_EVENT} from './github/fetchWithRetry';
 import {notificationMessageAtom} from './jotai/atoms';
 import {XIcon} from '@primer/octicons-react';
 import {Box, Flash, IconButton} from '@primer/react';
@@ -31,6 +33,21 @@ export default function NotificationBanner(): React.ReactElement | null {
       return () => clearTimeout(timeout);
     }
   }, [notification, dismiss]);
+
+  useEffect(() => {
+    const onRetry = (event: Event) => {
+      const {attempt, delayMs, maxAttempts, operation} = (event as CustomEvent<GitHubRetryDetail>)
+        .detail;
+      setNotification({
+        type: 'warning',
+        message: `GitHub is temporarily unavailable while trying to ${operation}. Retrying in ${Math.ceil(
+          delayMs / 1000,
+        )}s (${attempt + 1}/${maxAttempts}).`,
+      });
+    };
+    globalThis.addEventListener(GITHUB_RETRY_EVENT, onRetry);
+    return () => globalThis.removeEventListener(GITHUB_RETRY_EVENT, onRetry);
+  }, [setNotification]);
 
   if (notification == null) {
     return null;
