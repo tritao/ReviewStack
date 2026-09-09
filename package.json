@@ -1,0 +1,39 @@
+{
+  "private": true,
+  "workspaces": [
+    "shared",
+    "reviewstack",
+    "reviewstack.dev",
+    "textmate"
+  ],
+  "devDependencies": {
+    "@babel/runtime": "^7.21.0",
+    "@eslint/js": "^9.26.0",
+    "@types/eslint__js": "^8.42.3",
+    "eslint": "^9.26.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.1.0",
+    "prettier": "2.8.8",
+    "typescript-eslint": "^8.32.0"
+  },
+  "scripts": {
+    "start": "yarn workspace reviewstack.dev start",
+    "build": "yarn workspace reviewstack.dev build",
+    "test": "yarn workspace reviewstack test --watchAll=false",
+    "lint": "eslint reviewstack/src reviewstack.dev/src shared",
+    "eslint": "eslint reviewstack/src reviewstack.dev/src shared",
+    "eslint:fix": "eslint reviewstack/src reviewstack.dev/src shared --fix",
+    "prettier-check": "prettier --check .",
+    "prettier-fix": "prettier --write ."
+  },
+  "resolutions": {
+    "@tootallnate/once": ">=3.0.1",
+    "postcss": ">=8.4.31",
+    "rollup": "3.29.5",
+    "semver": ">=7.5.2",
+    "serialize-javascript": ">=7.0.5",
+    "underscore": ">=1.13.8"
+  },
+  "dependencies": {}
+}

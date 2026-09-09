@@ -1,0 +1,375 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+import type {BroadcastMessage} from './broadcast';
+import type {
+  DiffAndTokenizeParams,
+  DiffAndTokenizeResponse,
+  DiffStatsParams,
+  DiffStatsResponse,
+  LineRangeParams,
+  LineRangeResponse,
+  LineToPositionParams,
+  Message,
+  Response,
+  Result,
+} from './diffServiceWorker';
+import type {LineToPosition} from './lineToPosition';
+import type {SupportedPrimerColorMode} from './themeState';
+
+import {
+  AVAILABILITY_METHOD,
+  createDiffServiceBroadcastChannel,
+  createWorkerName,
+  parseWorkerIndex,
+} from './broadcast';
+import {atom as jotaiAtom} from 'jotai';
+import {atomFamily} from 'jotai-family';
+import {unwrap} from 'shared/utils';
+
+/**
+ * Client that is paired with an instance of `diffServiceWorker`. Takes
+ * responsibility for pairing requests and responses to the Web Worker, making
+ * the result available as a Promise to the caller.
+ */
+class DiffServiceClient {
+  private worker: SharedWorker;
+  private pendingRequests: Map<number, (result: Result) => void> = new Map();
+
+  constructor(workerName: string) {
+    this.worker = new SharedWorker(new URL('./diffServiceWorker.ts', import.meta.url), {
+      name: workerName,
+    });
+    this.worker.port.onmessage = event => this.onmessage(event);
+    // eslint-disable-next-line no-console
+    this.worker.port.onmessageerror = event => console.error(event);
+    // eslint-disable-next-line no-console
+    this.worker.onerror = event => console.error('SharedWorker error:', event);
+    // Explicitly start the port to ensure messages flow
+    this.worker.port.start();
+  }
+
+  private onmessage({data}: {data: Response}) {
+    const {id, ok, err} = data;
+    const handler = this.pendingRequests.get(id);
+    if (handler == null) {
+      // eslint-disable-next-line no-console
+      console.error(`no handler found for ${id}: multiple responses sent?`);
+      return;
+    }
+
+    this.pendingRequests.delete(id);
+    handler({ok, err});
+  }
+
+  private once(id: number, onresponse: (response: Result) => void) {
+    this.pendingRequests.set(id, onresponse);
+  }
+
+  sendMessage(message: Message, signal?: AbortSignal): Promise<unknown> {
+    const {id} = message;
+    const promise = new Promise((resolve, reject) => {
+      const onAbort = () => {
+        this.pendingRequests.delete(id);
+        this.worker.port.postMessage({id, method: 'cancel', params: null} as Message);
+        reject(new DOMException('Diff request was cancelled', 'AbortError'));
+      };
+      if (signal?.aborted) {
+        reject(new DOMException('Diff request was cancelled', 'AbortError'));
+        return;
+      }
+      signal?.addEventListener('abort', onAbort, {once: true});
+      this.once(id, (result: Result) => {
+        signal?.removeEventListener('abort', onAbort);
+        const {ok, err} = result;
+        if (err != null) {
+          reject(err);
+        } else {
+          resolve(ok);
+        }
+      });
+    });
+    this.worker.port.postMessage(message);
+    return promise;
+  }
+}
+
+/** This might be too many, but we'll try it out... */
+const MAX_SERVICE_WORKERS = 6;
+
+class WorkerPool {
+  /** Used to get updates about the availability of SharedWorkers. */
+  private broadcast: BroadcastChannel;
+
+  /**
+   * Due to the nature of how notifications from the BroadastChannel work, it
+   * is possible for the workers array to contain "holes" if, for example, the
+   * first availability notification is for worker #2 and then this.workers[2]
+   * will be set, but [0] and [1] will be undefined.
+   */
+  private workers: Array<undefined | {client: DiffServiceClient; available: boolean}> = [];
+
+  /**
+   * Messages that are waiting for a SharedWorker to become available in order
+   * to be sent. The response from sendMessage() should be passed to resolve or
+   * reject, as appropriate.
+   */
+  private pendingMessages: {
+    message: Message;
+    priority: number;
+    signal?: AbortSignal;
+    resolve: (value: unknown) => void;
+    reject: (error: Error) => void;
+  }[] = [];
+
+  /**
+   * Used by this.nextID() to ensure each message sent from the pool gets a
+   * unique ID so it can be paired with the response.
+   */
+  private requestID = 0;
+
+  constructor() {
+    this.broadcast = createDiffServiceBroadcastChannel();
+    this.broadcast.onmessage = (event: MessageEvent) => this.onBroadcastMessageReceived(event);
+  }
+
+  private onBroadcastMessageReceived({data}: MessageEvent) {
+    const message = data as BroadcastMessage;
+    if (message.method !== AVAILABILITY_METHOD) {
+      return;
+    }
+
+    const {workerName, available} = message;
+    const index = parseWorkerIndex(workerName);
+    if (index == null) {
+      // eslint-disable-next-line no-console
+      console.error(`could not parse worker index: ${workerName}`);
+      return;
+    }
+
+    const worker = this.workers[index];
+    if (worker !== undefined) {
+      worker.available = available;
+    } else {
+      this.workers[index] = {client: new DiffServiceClient(workerName), available};
+    }
+
+    if (available && this.pendingMessages.length > 0) {
+      this.trySendingPendingMessage();
+    }
+  }
+
+  sendMessage(message: Message, signal?: AbortSignal, priority = 0): Promise<unknown> {
+    if (signal?.aborted) {
+      return Promise.reject(new DOMException('Diff request was cancelled', 'AbortError'));
+    }
+    // For now, we use a simple round-robin scheduler.
+    // We could certainly do much better here:
+    // - keeping track of idle workers when deciding who to assign to
+    // - resizing the pool based on demand
+    // - worker affinity based on scopeName
+    const client = this.findAvailableClient();
+    if (client != null) {
+      return client.sendMessage(message, signal);
+    }
+
+    // No available workers! Create a new worker if we haven't hit MAX_SERVICE_WORKERS
+    // and send the message directly to it (don't wait for availability broadcast).
+    let workerIndex = this.workers.findIndex(val => val === undefined);
+    if (workerIndex === -1) {
+      const numWorkers = this.workers.length;
+      if (numWorkers < MAX_SERVICE_WORKERS) {
+        workerIndex = numWorkers;
+      }
+    }
+
+    if (workerIndex !== -1) {
+      const workerName = createWorkerName(workerIndex);
+      const client = new DiffServiceClient(workerName);
+      // Mark as available immediately since we're about to use it
+      this.workers[workerIndex] = {client, available: true};
+      // Send the actual message directly - don't wait for availability
+      return client.sendMessage(message, signal);
+    }
+
+    // All workers are busy - queue the message and wait for one to become available
+    let resolve: ((value: unknown) => void) | null = null;
+    let reject: ((error: Error) => void) | null = null;
+    const promise = new Promise((_resolve, _reject) => {
+      resolve = _resolve;
+      reject = _reject;
+    });
+
+    const pending = {
+      message,
+      priority,
+      signal,
+      resolve: unwrap<(value: unknown) => void>(resolve),
+      reject: unwrap<(error: Error) => void>(reject),
+    };
+    this.pendingMessages.push(pending);
+    this.pendingMessages.sort((a, b) => b.priority - a.priority);
+    signal?.addEventListener(
+      'abort',
+      () => {
+        const index = this.pendingMessages.indexOf(pending);
+        if (index !== -1) {
+          this.pendingMessages.splice(index, 1);
+          pending.reject(new DOMException('Diff request was cancelled', 'AbortError'));
+        }
+      },
+      {once: true},
+    );
+
+    return promise;
+  }
+
+  private trySendingPendingMessage(): void {
+    const client = this.findAvailableClient();
+    if (client == null) {
+      return;
+    }
+
+    const pendingMessage = this.pendingMessages.shift();
+    if (pendingMessage === undefined) {
+      return;
+    }
+
+    const {message, resolve, reject} = pendingMessage;
+    client.sendMessage(message, pendingMessage.signal).then(resolve, reject);
+  }
+
+  private findAvailableClient(): DiffServiceClient | null {
+    for (const worker of this.workers) {
+      if (worker !== undefined && worker.available) {
+        return worker.client;
+      }
+    }
+    return null;
+  }
+
+  nextID(): number {
+    return ++this.requestID;
+  }
+}
+
+// =============================================================================
+// Jotai versions of the diff service selectors
+// =============================================================================
+
+// Singleton WorkerPool instance shared across all Jotai atoms
+let workerPoolInstance: WorkerPool | null = null;
+function getWorkerPool(): WorkerPool {
+  if (workerPoolInstance == null) {
+    workerPoolInstance = new WorkerPool();
+  }
+  return workerPoolInstance;
+}
+
+/**
+ * Jotai atom for the diff service worker pool.
+ * Uses a singleton to share the pool across all atoms.
+ */
+export const diffServiceClientAtom = jotaiAtom<WorkerPool>(getWorkerPool());
+
+/**
+ * Jotai atomFamily for diffAndTokenize requests.
+ */
+export const diffAndTokenizeAtom = atomFamily(
+  (params: DiffAndTokenizeParams) =>
+    jotaiAtom(async (_get, {signal}) => {
+      const worker = getWorkerPool();
+      const message: Message = {
+        id: worker.nextID(),
+        method: 'diffAndTokenize',
+        params,
+      };
+      return (await worker.sendMessage(message, signal, 10)) as DiffAndTokenizeResponse;
+    }),
+  (a, b) =>
+    a.path === b.path &&
+    a.before === b.before &&
+    a.after === b.after &&
+    a.scopeName === b.scopeName &&
+    a.colorMode === b.colorMode,
+);
+
+/** Aggregate statistics are expensive, so compute and cache them off-thread. */
+export const diffStatsAtom = atomFamily(
+  (params: DiffStatsParams) =>
+    jotaiAtom(async (_get, {signal}) => {
+      const worker = getWorkerPool();
+      return (await worker.sendMessage({
+        id: worker.nextID(),
+        method: 'diffStats',
+        params,
+      }, signal, -10)) as DiffStatsResponse;
+    }),
+  (a, b) => a.key === b.key,
+);
+
+/**
+ * Jotai atomFamily for colorMap requests.
+ */
+export const colorMapAtom = atomFamily(
+  (colorMode: SupportedPrimerColorMode) =>
+    jotaiAtom(async () => {
+      const worker = getWorkerPool();
+      const message: Message = {
+        id: worker.nextID(),
+        method: 'colorMap',
+        params: {colorMode},
+      };
+      return (await worker.sendMessage(message)) as string[];
+    }),
+  (a, b) => a === b,
+);
+
+/**
+ * Jotai atomFamily for lineRange requests.
+ */
+export const lineRangeAtom = atomFamily(
+  (params: LineRangeParams) =>
+    jotaiAtom(async () => {
+      const worker = getWorkerPool();
+      const message: Message = {
+        id: worker.nextID(),
+        method: 'lineRange',
+        params,
+      };
+      const response = (await worker.sendMessage(message)) as LineRangeResponse;
+      const {unsplitLines, notFound, isBinary} = response;
+      if (unsplitLines != null) {
+        return unsplitLines.split('\n');
+      } else if (notFound) {
+        // eslint-disable-next-line no-console
+        console.error(`blob ${params.oid} not found for lineRange`);
+      } else if (isBinary) {
+        // eslint-disable-next-line no-console
+        console.error(`blob ${params.oid} is binary, no lineRange`);
+      }
+      return [];
+    }),
+  (a, b) => a.oid === b.oid && a.start === b.start && a.numLines === b.numLines,
+);
+
+/**
+ * Jotai atomFamily for lineToPosition requests.
+ */
+export const lineToPositionAtom = atomFamily(
+  (params: LineToPositionParams) =>
+    jotaiAtom(async () => {
+      const worker = getWorkerPool();
+      const message: Message = {
+        id: worker.nextID(),
+        method: 'lineToPosition',
+        params,
+      };
+      return (await worker.sendMessage(message)) as LineToPosition;
+    }),
+  (a, b) => a.oldOID === b.oldOID && a.newOID === b.newOID,
+);
