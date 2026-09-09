@@ -14,9 +14,15 @@
   --reviewstack-workspace-height: calc(100vh - 160px);
 }
 
+.reviewstack-pr-layout > .drawers {
+  height: var(--reviewstack-workspace-height);
+}
+
+.reviewstack-pr-layout .drawer-main-content > div,
 .reviewstack-pr-workspace,
 .reviewstack-pr-timeline {
-  height: var(--reviewstack-workspace-height);
+  min-height: 0;
+  height: 100%;
 }
 
 .reviewstack .drawer-label-text {
@@ -32,6 +38,10 @@
   .reviewstack-pr-layout {
     --reviewstack-pr-header-height: 132px;
     --reviewstack-workspace-height: calc(100vh - 192px);
+  }
+
+  .reviewstack .drawers {
+    --drawer-label-size: 45px;
   }
 
   .reviewstack .drawer-bottom .drawer-label-text {

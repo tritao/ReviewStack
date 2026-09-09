@@ -108,5 +108,10 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);
   await expect(page.getByText('Review', {exact: true})).toBeVisible();
+  await expect
+    .poll(() =>
+      page.locator('.drawer-bottom .drawer-label').evaluate(element => element.clientHeight),
+    )
+    .toBeGreaterThanOrEqual(44);
   await context.close();
 });

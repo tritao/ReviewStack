@@ -1,4 +1,10 @@
 .reviewstack-app-header {
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.reviewstack-app-header > * {
   min-width: 0;
 }
 
@@ -10,6 +16,9 @@
 }
 
 .reviewstack-app-header-account {
+  display: flex;
+  align-items: center;
+  min-width: 0;
   white-space: nowrap;
 }
 
