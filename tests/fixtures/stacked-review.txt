@@ -1,3 +1,5 @@
 ReviewStack browser fixture
 
 This first commit gives Commit mode a stable, reviewable change.
+
+This second commit verifies navigation between commits without changing application code.
