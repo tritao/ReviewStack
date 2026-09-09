@@ -75,6 +75,7 @@ import {notEmpty} from 'shared/utils';
 const MAX_PARENT_COMMITS_TO_FETCH = 10;
 const NUM_COMMENTS_TO_FETCH = 10;
 const NUM_TIMELINE_ITEMS_TO_FETCH = 100;
+const MAX_BLOBS_PER_GRAPHQL_QUERY = 20;
 
 /**
  * Implementation of GitHub client that fetches data via GraphQL.
@@ -179,22 +180,18 @@ export default class GraphQLGitHubClient implements GitHubClient {
     });
     ++globalCacheStats.gitHubGetBlob;
 
-    // Specifying a well-formed oid for a non-existent blob appears to return a
-    // 403. For good measure, also check for 404, as that would also imply
-    // "Not found," such that null would be the appropriate response rather
-    // than throwing an error.
     const {status} = response;
-    if (status === 403 || status === 404) {
+    if (status === 404) {
       return null;
     }
 
     if (!response.ok) {
-      return Promise.reject(`HTTP request error: ${status}: ${response.statusText}`);
+      throw await githubRestError(response, `fetch blob ${oid}`);
     }
 
     const json = await response.json();
     const {content, encoding, sha, size, node_id} = json;
-    const decodedContent = encoding === 'base64' ? window.atob(content) : null;
+    const decodedContent = encoding === 'base64' ? decodeBase64(content) : null;
     // If we were unable to get the text contents, tag blob as binary.
     const isBinary = decodedContent == null || isBinaryContent(decodedContent);
     const text =
@@ -211,7 +208,7 @@ export default class GraphQLGitHubClient implements GitHubClient {
           // alternative implementation that does not use escape(), using
           // escape() is attractive because it is a built-in and is likely
           // faster than a solution we could code by hand.
-          decodeURIComponent(escape(decodedContent))
+          new TextDecoder().decode(decodedContent)
         : content;
     return {
       id: node_id,
@@ -221,6 +218,73 @@ export default class GraphQLGitHubClient implements GitHubClient {
       isTruncated: false,
       text,
     };
+  }
+
+  async getBlobs(
+    oids: GitObjectID[],
+    signal?: AbortSignal,
+  ): Promise<Map<GitObjectID, Blob | null>> {
+    const uniqueOIDs = [...new Set(oids)];
+    const batches: GitObjectID[][] = [];
+    for (let index = 0; index < uniqueOIDs.length; index += MAX_BLOBS_PER_GRAPHQL_QUERY) {
+      batches.push(uniqueOIDs.slice(index, index + MAX_BLOBS_PER_GRAPHQL_QUERY));
+    }
+
+    const result = new Map<GitObjectID, Blob | null>();
+    const pending = [...batches];
+    const fetchNextBatch = async (): Promise<void> => {
+      if (signal?.aborted) {
+        throw new DOMException('Blob request was cancelled', 'AbortError');
+      }
+      const batch = pending.pop();
+      if (batch == null) {
+        return;
+      }
+      const fetched = await this.getBlobBatch(batch, signal);
+      fetched.forEach((blob, oid) => result.set(oid, blob));
+      return fetchNextBatch();
+    };
+    await Promise.all(Array.from({length: Math.min(2, pending.length)}, () => fetchNextBatch()));
+    return result;
+  }
+
+  private async getBlobBatch(
+    oids: GitObjectID[],
+    signal?: AbortSignal,
+  ): Promise<Map<GitObjectID, Blob | null>> {
+    const oidVariables = oids.map((_oid, index) => `$oid${index}: GitObjectID!`).join(', ');
+    const selections = oids
+      .map(
+        (_oid, index) => `blob${index}: object(oid: $oid${index}) {
+          ... on Blob { id oid byteSize isBinary isTruncated text }
+        }`,
+      )
+      .join('\n');
+    const query = `query ReviewStackBlobs($org: String!, $repo: String!, ${oidVariables}) {
+      repositoryOwner(login: $org) {
+        repository(name: $repo) { ${selections} }
+      }
+    }`;
+    const variables: Record<string, string> = {
+      org: this.organization,
+      repo: this.repositoryName,
+    };
+    oids.forEach((oid, index) => {
+      variables[`oid${index}`] = oid;
+    });
+    const data = await this.query<BlobBatchQueryData, Record<string, string>>(
+      query,
+      variables,
+      signal,
+    );
+    ++globalCacheStats.gitHubGetBlob;
+    const repository = data.repositoryOwner?.repository;
+    return new Map(
+      oids.map((oid, index) => {
+        const object = repository?.[`blob${index}`];
+        return [oid, object?.oid === oid ? object : null];
+      }),
+    );
   }
 
   async getCommitComparison(
@@ -405,9 +469,43 @@ export default class GraphQLGitHubClient implements GitHubClient {
     >(SubmitPullRequestReviewMutation, {input});
   }
 
-  private query<TData, TVariables>(query: string, variables: TVariables): Promise<TData> {
-    return queryGraphQL(query, variables, this.requestHeaders, this.graphQLEndpoint);
+  private query<TData, TVariables>(
+    query: string,
+    variables: TVariables,
+    signal?: AbortSignal,
+  ): Promise<TData> {
+    return queryGraphQL(query, variables, this.requestHeaders, this.graphQLEndpoint, signal);
   }
+}
+
+type BlobBatchQueryData = {
+  repositoryOwner?: {
+    repository?: Record<string, Blob | null> | null;
+  } | null;
+};
+
+function decodeBase64(content: string): Uint8Array {
+  const binary = window.atob(content.replace(/\s/g, ''));
+  return Uint8Array.from(binary, char => char.charCodeAt(0));
+}
+
+async function githubRestError(response: Response, operation: string): Promise<Error> {
+  const status = response.status;
+  const body = (await response.json().catch(() => null)) as {message?: unknown} | null;
+  const apiMessage = typeof body?.message === 'string' ? body.message : response.statusText;
+  if (status === 403 && response.headers.get('x-ratelimit-remaining') === '0') {
+    const reset = response.headers.get('x-ratelimit-reset');
+    const resetMessage =
+      reset == null ? '' : ` until ${new Date(Number(reset) * 1000).toLocaleString()}`;
+    return new Error(`GitHub rate limit exceeded${resetMessage} while trying to ${operation}.`);
+  }
+  if (status === 403) {
+    return new Error(`GitHub denied permission to ${operation}: ${apiMessage}`);
+  }
+  if (status === 422) {
+    return new Error(`GitHub rejected the request to ${operation}: ${apiMessage}`);
+  }
+  return new Error(`GitHub API error ${status} while trying to ${operation}: ${apiMessage}`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -426,10 +524,10 @@ function objectToTree(object: any): Tree {
  * is "if there is a NUL in the first 8000 bytes, assume binary," so that's
  * what we implement here.
  */
-function isBinaryContent(blob: string): boolean {
+function isBinaryContent(blob: Uint8Array): boolean {
   const maxLen = Math.min(8000, blob.length);
   for (let i = 0; i < maxLen; ++i) {
-    if (blob.charCodeAt(i) === 0) {
+    if (blob[i] === 0) {
       return true;
     }
   }

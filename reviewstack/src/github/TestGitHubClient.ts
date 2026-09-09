@@ -56,6 +56,13 @@ export default class TestGitHubClient implements GitHubClient {
     return Promise.resolve(null);
   }
 
+  async getBlobs(
+    oids: GitObjectID[],
+    _signal?: AbortSignal,
+  ): Promise<Map<GitObjectID, Blob | null>> {
+    return new Map(await Promise.all(oids.map(async oid => [oid, await this.getBlob(oid)])));
+  }
+
   getPullRequest(_pr: number): Promise<PullRequest | null> {
     return Promise.resolve(null);
   }

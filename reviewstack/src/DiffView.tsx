@@ -11,12 +11,13 @@ import type {GitObjectID} from './github/types';
 import {FileHeader} from './SplitDiffFileHeader';
 import SplitDiffView from './SplitDiffView';
 import {findExactRenames} from './exactRenames';
+import UnauthorizedError from './github/UnauthorizedError';
 import hasBinaryContent from './hasBinaryContent';
 import joinPath from './joinPath';
 import {fileContentsDeltaAtom, gitHubBlobAtom} from './jotai/atoms';
-import {Box, Text} from '@primer/react';
+import {Box, Button, Flash, Text} from '@primer/react';
 import {useAtomValue} from 'jotai';
-import React, {Suspense, useMemo} from 'react';
+import React, {Component, Suspense, useMemo} from 'react';
 
 function DiffFileSkeleton(): React.ReactElement {
   return (
@@ -36,7 +37,9 @@ export default function DiffView({diff, isPullRequest}: {diff: Diff; isPullReque
   if (diff != null) {
     const renames = findExactRenames(diff);
     const renameByIndex = new Map(renames.map(rename => [rename.removeIndex, rename]));
-    const consumedIndexes = new Set(renames.flatMap(rename => [rename.removeIndex, rename.addIndex]));
+    const consumedIndexes = new Set(
+      renames.flatMap(rename => [rename.removeIndex, rename.addIndex]),
+    );
     return (
       <div>
         {diff.map((change, index) => {
@@ -57,11 +60,13 @@ export default function DiffView({diff, isPullRequest}: {diff: Diff; isPullReque
           const name = change.type === 'modify' ? change.before.name : change.entry.name;
           const key = `${change.basePath}/${name}`;
           return (
-            <Suspense key={key} fallback={<DiffFileSkeleton />}>
-              <Box paddingY={1}>
-                <ChangeDisplay change={change} isPullRequest={isPullRequest} />
-              </Box>
-            </Suspense>
+            <DiffFileErrorBoundary key={key} path={getPathForDisplay(change)}>
+              <Suspense fallback={<DiffFileSkeleton />}>
+                <Box paddingY={1}>
+                  <ChangeDisplay change={change} isPullRequest={isPullRequest} />
+                </Box>
+              </Suspense>
+            </DiffFileErrorBoundary>
           );
         })}
       </div>
@@ -71,23 +76,67 @@ export default function DiffView({diff, isPullRequest}: {diff: Diff; isPullReque
   }
 }
 
+function getPathForDisplay(change: CommitChange): string {
+  const entry = change.type === 'modify' ? change.after : change.entry;
+  return joinPath(change.basePath, entry.name);
+}
+
+class DiffFileErrorBoundary extends Component<
+  {children: React.ReactNode; path: string},
+  {error: unknown}
+> {
+  state: {error: unknown} = {error: null};
+
+  static getDerivedStateFromError(error: unknown) {
+    return {error};
+  }
+
+  render() {
+    const {error} = this.state;
+    if (error == null) {
+      return this.props.children;
+    }
+    if (error instanceof UnauthorizedError) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    return (
+      <Box paddingY={1}>
+        <FileHeader path={this.props.path} />
+        <Flash variant="warning">
+          <Text>Could not load this file: {message}</Text>{' '}
+          <Button size="small" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </Flash>
+      </Box>
+    );
+  }
+}
+
 function ChangeDisplay({change, isPullRequest}: {change: CommitChange; isPullRequest: boolean}) {
   if (change.type === 'modify' && change.before.oid === change.after.oid) {
     return (
       <MetadataOnlyFile
         path={joinPath(change.basePath, change.before.name)}
-        description={`Mode changed from ${formatMode(change.before.mode)} to ${formatMode(change.after.mode)}.`}
+        description={`Mode changed from ${formatMode(change.before.mode)} to ${formatMode(
+          change.after.mode,
+        )}.`}
       />
     );
   }
-  const beforeEntry = change.type === 'modify' ? change.before : change.type === 'remove' ? change.entry : null;
-  const afterEntry = change.type === 'modify' ? change.after : change.type === 'add' ? change.entry : null;
+  const beforeEntry =
+    change.type === 'modify' ? change.before : change.type === 'remove' ? change.entry : null;
+  const afterEntry =
+    change.type === 'modify' ? change.after : change.type === 'add' ? change.entry : null;
   if (beforeEntry?.mode === 57344 || afterEntry?.mode === 57344) {
     const path = joinPath(change.basePath, (beforeEntry ?? afterEntry)?.name ?? 'submodule');
     return (
       <MetadataOnlyFile
         path={path}
-        description={`Submodule revision changed from ${beforeEntry?.oid ?? 'none'} to ${afterEntry?.oid ?? 'none'}.`}
+        description={`Submodule revision changed from ${beforeEntry?.oid ?? 'none'} to ${
+          afterEntry?.oid ?? 'none'
+        }.`}
       />
     );
   }
@@ -138,9 +187,7 @@ function AddedFile({
   const {isBinary, text} = blob ?? {};
   // Check both the isBinary flag and perform our own binary content detection
   if (text != null && !isBinary && !hasBinaryContent(text)) {
-    return (
-      <SplitDiffView path={path} before={null} after={oid} isPullRequest={isPullRequest} />
-    );
+    return <SplitDiffView path={path} before={null} after={oid} isPullRequest={isPullRequest} />;
   } else {
     return <BinaryFile path={path} />;
   }

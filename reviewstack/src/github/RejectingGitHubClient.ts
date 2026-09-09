@@ -51,6 +51,10 @@ export default class RejectingGitHubClient implements GitHubClient {
     return Promise.reject(`getBlob(${oid}) not implemented`);
   }
 
+  getBlobs(oids: GitObjectID[], _signal?: AbortSignal): Promise<Map<GitObjectID, Blob | null>> {
+    return Promise.reject(`getBlobs(${oids.length} blobs) not implemented`);
+  }
+
   getPullRequest(_pr: number): Promise<PullRequest | null> {
     return Promise.reject('Method not implemented.');
   }

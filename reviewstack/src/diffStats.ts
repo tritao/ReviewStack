@@ -37,7 +37,10 @@ export function countBlobChanges(
   expectedBefore: boolean,
   expectedAfter: boolean,
 ): DiffStats {
-  if ((expectedBefore && before == null) || (expectedAfter && after == null)) {
+  if (
+    (expectedBefore && (before == null || before.isTruncated)) ||
+    (expectedAfter && (after == null || after.isTruncated))
+  ) {
     return {additions: 0, deletions: 0, binaryFiles: 0, unavailableFiles: 1};
   }
   if (

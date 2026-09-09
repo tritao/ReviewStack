@@ -269,6 +269,39 @@ export default class CachingGitHubClient implements GitHubClient {
     return blob;
   }
 
+  async getBlobs(
+    oids: GitObjectID[],
+    signal?: AbortSignal,
+  ): Promise<Map<GitObjectID, Blob | null>> {
+    const uniqueOIDs = [...new Set(oids)];
+    const cached = await Promise.all(uniqueOIDs.map(oid => this.getCachedBlob(oid)));
+    const result = new Map<GitObjectID, Blob | null>();
+    const missing: GitObjectID[] = [];
+    uniqueOIDs.forEach((oid, index) => {
+      const blob = cached[index];
+      if (blob == null) {
+        missing.push(oid);
+      } else {
+        ++globalCacheStats.cacheBlobReads;
+        result.set(oid, blob);
+      }
+    });
+
+    if (missing.length === 0) {
+      return result;
+    }
+
+    const fetched = await this.client.getBlobs(missing, signal);
+    const blobsToCache = [...fetched.values()].filter((blob): blob is Blob => blob != null);
+    if (blobsToCache.length > 0) {
+      const tx = new OpenTransaction(this.db, DB_BLOB_STORE_NAME);
+      await Promise.all(blobsToCache.map(blob => tx.add(blob)));
+      await tx.commit();
+    }
+    missing.forEach(oid => result.set(oid, fetched.get(oid) ?? null));
+    return result;
+  }
+
   getPullRequest(pr: number): Promise<PullRequest | null> {
     // No caching done because the PR could have been updated since the PR data
     // were requested last.

@@ -879,7 +879,7 @@ export const gitHubPullRequestVersionDiffStatsAtom = atom<
   Promise<
     (DiffStats & {modeChanges: number; submoduleChanges: number; renamedFiles: number}) | null
   >
->(async get => {
+>(async (get, {signal}) => {
   const diff = await get(gitHubPullRequestVersionDiffAtom);
   if (diff == null) {
     return null;
@@ -911,8 +911,8 @@ export const gitHubPullRequestVersionDiffStatsAtom = atom<
   // The diff workers intentionally do not receive GitHub credentials. Their
   // CachingGitHubClient can therefore only read blobs already persisted by
   // the authenticated main-thread client. Preload each unique blob before
-  // dispatching the statistics request, with bounded concurrency to avoid a
-  // large PR creating an unbounded burst of REST requests.
+  // dispatching the statistics request. getBlobs() uses bounded GraphQL
+  // batches so large PRs do not create one REST request per file.
   const blobOIDs = new Set<GitObjectID>();
   files.forEach(({before, after}) => {
     if (before != null) {
@@ -922,18 +922,14 @@ export const gitHubPullRequestVersionDiffStatsAtom = atom<
       blobOIDs.add(after);
     }
   });
-  const pendingBlobOIDs = [...blobOIDs];
-  const fetchNextBlob = async (): Promise<void> => {
-    const oid = pendingBlobOIDs.pop();
-    if (oid == null) {
-      return;
-    }
-    await get(gitHubBlobAtom(oid));
-    return fetchNextBlob();
-  };
-  await Promise.all(
-    Array.from({length: Math.min(8, pendingBlobOIDs.length)}, () => fetchNextBlob()),
-  );
+  const client = await get(gitHubClientAtom);
+  if (client == null) {
+    return null;
+  }
+  await client.getBlobs([...blobOIDs], signal);
+  if (signal.aborted) {
+    throw new DOMException('Diff statistics request was cancelled', 'AbortError');
+  }
 
   const key = files.map(file => `${file.before ?? ''}:${file.after ?? ''}`).join('|');
   const stats = await get(diffStatsAtom({key, files}));

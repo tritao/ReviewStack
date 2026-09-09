@@ -27,8 +27,7 @@ test('counts a newly added file', () => {
   });
 });
 
-const blob = (text: string | null, isBinary = false): Blob =>
-  ({text, isBinary}) as Blob;
+const blob = (text: string | null, isBinary = false): Blob => ({text, isBinary} as Blob);
 
 test('reports binary files separately from textual line counts', () => {
   expect(countBlobChanges(null, blob('binary', true), false, true)).toEqual({
@@ -41,6 +40,17 @@ test('reports binary files separately from textual line counts', () => {
 
 test('reports unavailable blobs separately from binary files', () => {
   expect(countBlobChanges(blob('old'), null, true, true)).toEqual({
+    additions: 0,
+    deletions: 0,
+    binaryFiles: 0,
+    unavailableFiles: 1,
+  });
+});
+
+test('does not report partial counts for truncated blobs', () => {
+  expect(
+    countBlobChanges(blob('old'), {...blob('partial'), isTruncated: true}, true, true),
+  ).toEqual({
     additions: 0,
     deletions: 0,
     binaryFiles: 0,

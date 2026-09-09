@@ -5,13 +5,41 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import {gitHubPullRequestVersionDiffStatsAtom} from './jotai';
+import UnauthorizedError from './github/UnauthorizedError';
+import {gitHubPullRequestVersionDiffAtom, gitHubPullRequestVersionDiffStatsAtom} from './jotai';
 import {CounterLabel, Text} from '@primer/react';
 import {useAtomValue} from 'jotai';
+import {loadable} from 'jotai/utils';
+import {useMemo} from 'react';
 
 export default function PullRequestChangeCount(): React.ReactElement | null {
-  const stats = useAtomValue(gitHubPullRequestVersionDiffStatsAtom);
+  const diff = useAtomValue(gitHubPullRequestVersionDiffAtom);
+  const loadableStatsAtom = useMemo(() => loadable(gitHubPullRequestVersionDiffStatsAtom), []);
+  const statsLoadable = useAtomValue(loadableStatsAtom);
 
+  if (statsLoadable.state === 'loading') {
+    return (
+      <Text color="fg.muted" fontSize={0} aria-live="polite">
+        Calculating totals for {diff?.diff.length ?? 0} files…
+      </Text>
+    );
+  }
+  if (statsLoadable.state === 'hasError') {
+    if (statsLoadable.error instanceof UnauthorizedError) {
+      throw statsLoadable.error;
+    }
+    const message =
+      statsLoadable.error instanceof Error
+        ? statsLoadable.error.message
+        : String(statsLoadable.error);
+    return (
+      <Text color="danger.fg" fontSize={0} title={message}>
+        Change totals unavailable
+      </Text>
+    );
+  }
+
+  const stats = statsLoadable.data;
   if (stats == null) {
     return null;
   }

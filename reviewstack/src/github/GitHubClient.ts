@@ -44,6 +44,7 @@ export default interface GitHubClient {
   getCommitComparison(base: GitObjectID, head: GitObjectID): Promise<CommitComparison | null>;
   getTree(oid: GitObjectID): Promise<Tree | null>;
   getBlob(oid: GitObjectID): Promise<Blob | null>;
+  getBlobs(oids: GitObjectID[], signal?: AbortSignal): Promise<Map<GitObjectID, Blob | null>>;
   getPullRequest(pr: number): Promise<PullRequest | null>;
   getPullRequests(input: PullsQueryInput): Promise<PullsWithPageInfo | null>;
   getRepoAssignableUsers(query: string | null): Promise<UserFragment[]>;

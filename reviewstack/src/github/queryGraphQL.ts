@@ -12,11 +12,13 @@ export default async function queryGraphQL<TData, TVariables>(
   variables: TVariables,
   requestHeaders: Record<string, string>,
   graphQLEndpoint: string,
+  signal?: AbortSignal,
 ): Promise<TData> {
   const response = await fetch(graphQLEndpoint, {
     headers: requestHeaders,
     method: 'POST',
     body: JSON.stringify({query, variables}),
+    signal,
   });
 
   if (!response.ok) {
