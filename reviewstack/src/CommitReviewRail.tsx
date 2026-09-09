@@ -99,7 +99,9 @@ function CommitRailItem({
         <Text fontWeight={current ? 'bold' : 'normal'}>{index + 1}. </Text>
         <Text className="commit-review-rail-title">{commit.title}</Text>
         <Text as="div" color="fg.muted" fontSize={0}>
-          {shortOid(commit.commit)}
+          {shortOid(commit.commit)} · {new Date(commit.committedDate).toLocaleDateString()}
+          {commit.author != null ? ` · ${commit.author}` : ''}
+          {commit.parents.length > 1 ? ' · merge' : ''}
         </Text>
       </span>
     </button>

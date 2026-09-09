@@ -22,6 +22,7 @@ import {
   gitHubPullRequestAtom,
   gitHubPullRequestForParamsAtom,
   gitHubPullRequestIDAtom,
+  gitHubPullRequestReviewTargetAtom,
   gitHubPullRequestVersionDiffAtom,
   pendingScrollRestoreAtom,
   stackedPullRequestAtom,
@@ -58,17 +59,12 @@ function PullRequestBootstrap() {
 function PullRequestWithParams({params}: {params: GitHubPullRequestParams}) {
   // Use loadable to avoid suspending - we want to show the current PR while
   // refreshing in the background
-  const loadablePRAtom = useMemo(
-    () => loadable(gitHubPullRequestForParamsAtom(params)),
-    [params],
-  );
+  const loadablePRAtom = useMemo(() => loadable(gitHubPullRequestForParamsAtom(params)), [params]);
   const pullRequestLoadable = useAtomValue(loadablePRAtom);
   const setPullRequestJotai = useSetAtom(gitHubPullRequestAtom);
   const setPendingScrollRestore = useSetAtom(pendingScrollRestoreAtom);
-  const pullRequest =
-    pullRequestLoadable.state === 'hasData' ? pullRequestLoadable.data : null;
-  const isPullRequestNotFound =
-    pullRequestLoadable.state === 'hasData' && pullRequest == null;
+  const pullRequest = pullRequestLoadable.state === 'hasData' ? pullRequestLoadable.data : null;
+  const isPullRequestNotFound = pullRequestLoadable.state === 'hasData' && pullRequest == null;
 
   useEffect(() => {
     if (pullRequest != null) {
@@ -116,6 +112,7 @@ function PullRequestNotFound() {
 function PullRequestDetails() {
   const pullRequest = useAtomValue(gitHubPullRequestAtom);
   const stack = useAtomValue(stackedPullRequestAtom);
+  const reviewTarget = useAtomValue(gitHubPullRequestReviewTargetAtom);
   if (pullRequest == null) {
     return null;
   }
@@ -143,8 +140,8 @@ function PullRequestDetails() {
 
   return (
     <Box display="flex" flexDirection="column" paddingTop={3} gridGap={3}>
-      <PullRequestReviewers />
-      <PullRequestLabels />
+      {reviewTarget.type === 'layer' && <PullRequestReviewers />}
+      {reviewTarget.type === 'layer' && <PullRequestLabels />}
       {stack.type === 'invalid-stack' && (
         <Box
           borderWidth={1}
@@ -156,16 +153,46 @@ function PullRequestDetails() {
           <Text>{stack.message}</Text>
         </Box>
       )}
-      <Box
-        borderWidth={1}
-        borderStyle="solid"
-        borderColor="accent.muted"
-        borderRadius={4}
-        fontSize={14}
-        padding={3}>
-        <TrustedRenderedMarkdown trustedHTML={pullRequestBodyHTML} />
-      </Box>
-      <PullRequestSignals />
+      {reviewTarget.type === 'commit' ? (
+        <Box
+          as="details"
+          borderWidth={1}
+          borderStyle="solid"
+          borderColor="border.default"
+          borderRadius={4}
+          padding={2}>
+          <Text as="summary" fontWeight="bold" sx={{cursor: 'pointer'}}>
+            PR context, labels, reviewers, and checks
+          </Text>
+          <Box display="flex" flexDirection="column" gridGap={3} paddingTop={3}>
+            <PullRequestReviewers />
+            <PullRequestLabels />
+            <Box
+              borderWidth={1}
+              borderStyle="solid"
+              borderColor="accent.muted"
+              borderRadius={4}
+              fontSize={14}
+              padding={3}>
+              <TrustedRenderedMarkdown trustedHTML={pullRequestBodyHTML} />
+            </Box>
+            <PullRequestSignals />
+          </Box>
+        </Box>
+      ) : (
+        <>
+          <Box
+            borderWidth={1}
+            borderStyle="solid"
+            borderColor="accent.muted"
+            borderRadius={4}
+            fontSize={14}
+            padding={3}>
+            <TrustedRenderedMarkdown trustedHTML={pullRequestBodyHTML} />
+          </Box>
+          <PullRequestSignals />
+        </>
+      )}
       <Suspense fallback={<CenteredSpinner />}>
         <div>
           <div

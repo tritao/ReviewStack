@@ -31,7 +31,7 @@ const COMMENT_INPUT_HEIGHT = 125;
 
 const drawerStateAtom = atom<AllDrawersState>({
   right: {size: 500, collapsed: false},
-  left: {size: 200, collapsed: true},
+  left: {size: 300, collapsed: true},
   top: {size: 200, collapsed: true},
   bottom: {size: 200, collapsed: true},
 });
@@ -70,6 +70,7 @@ export default function PullRequestLayout({
     setDrawerState(state => ({
       ...state,
       left: {...state.left, collapsed: reviewTarget.type !== 'commit'},
+      right: reviewTarget.type === 'commit' ? {...state.right, collapsed: true} : state.right,
     }));
   }, [reviewTarget.type, setDrawerState]);
   useCommand('ToggleSidebar', () => {
