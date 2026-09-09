@@ -24,6 +24,7 @@
     "start": "yarn workspace reviewstack.dev start",
     "prebuild": "yarn prepare-generated",
     "build": "yarn workspace reviewstack.dev build",
+    "check:bundle-size": "node scripts/check-bundle-size.js",
     "pretest": "yarn prepare-generated",
     "test": "yarn workspace reviewstack test --watchAll=false && node --test oauth-worker/test/*.test.js scripts/*.test.js",
     "prepare-pages": "node scripts/prepare-pages.js",

@@ -57,6 +57,7 @@ For a production build:
 
 ```bash
 yarn build
+yarn check:bundle-size
 npx serve -s reviewstack.dev/build
 ```
 
