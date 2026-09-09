@@ -1,5 +1,9 @@
 # ReviewStack for devstack
 
+[![Test and deploy GitHub Pages](https://github.com/tritao/ReviewStack/actions/workflows/pages.yml/badge.svg)](https://github.com/tritao/ReviewStack/actions/workflows/pages.yml)
+
+Hosted app: <https://tritao.github.io/ReviewStack/>
+
 This repository packages [ReviewStack](https://sapling-scm.com/docs/addons/reviewstack)
 as a standalone application and adds first-class support for
 [devstack](https://github.com/tritao/devstack) stacked pull requests. It is

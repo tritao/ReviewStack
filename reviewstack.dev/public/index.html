@@ -116,6 +116,9 @@
           var useNavigate = ReactRouterDOM.useNavigate;
           var useParams = ReactRouterDOM.useParams;
           var Link = ReactRouterDOM.Link;
+          // Create React App replaces PUBLIC_URL in public assets. It is empty
+          // locally and `/ReviewStack` for the GitHub Pages deployment.
+          var basename = '%PUBLIC_URL%' || '/';
 
           function CustomLink(props) {
             var href = props.href;
@@ -202,7 +205,7 @@
                   },
                   React.createElement(
                     ReactRouterDOM.BrowserRouter,
-                    null,
+                    {basename: basename},
                     React.createElement(
                       ReactRouterDOM.Routes,
                       null,
