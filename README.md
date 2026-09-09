@@ -143,6 +143,10 @@ The workspace contains:
 
 TextMate grammar artifacts are checked in. The ignored GraphQL types and
 TextMate WASM runtime are prepared automatically before start, test, and build.
+
+The hosted build restricts API connections to GitHub and the OAuth worker.
+Deployments for GitHub Enterprise must set `REACT_APP_CSP_CONNECT_SRC` to a
+space-separated list containing the Enterprise API and OAuth origins.
 When grammar sources change, use the package-specific `textmate` script before
 committing.
 

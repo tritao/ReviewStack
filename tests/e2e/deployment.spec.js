@@ -21,6 +21,16 @@ test('login and OAuth callback are served as application routes', async ({
   expect(await callback.text()).toContain('<div id="root">');
   await page.goto('./');
   await expect(page.getByText(/^Sign in with (GitHub|a token)$/).first()).toBeVisible();
+  const csp = await page
+    .locator('meta[http-equiv="Content-Security-Policy"]')
+    .getAttribute('content');
+  expect(csp).toContain("connect-src 'self' https://api.github.com");
+  const connectSources = csp
+    .split(';')
+    .find(directive => directive.trim().startsWith('connect-src'))
+    .trim()
+    .split(/\s+/);
+  expect(connectSources).not.toContain('https:');
   const scriptSources = await page
     .locator('script[src]')
     .evaluateAll(scripts => scripts.map(script => script.src));
