@@ -1,0 +1,30 @@
+.reviewstack-app-header {
+  min-width: 0;
+}
+
+.reviewstack-app-header-repository {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reviewstack-app-header-account {
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .reviewstack-app-header {
+    padding-inline: 12px !important;
+  }
+
+  .reviewstack-theme-label,
+  .reviewstack-app-header-account > span:last-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

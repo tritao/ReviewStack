@@ -40,6 +40,11 @@ test('login and OAuth callback are served as application routes', async ({
   );
   expect(thirdPartyScripts).toEqual([]);
   expect(errors).toEqual([]);
+
+  await page.setViewportSize({width: 390, height: 844});
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBeLessThanOrEqual(390);
 });
 
 test('fixture PR exposes layer and commit review modes', async ({browser, baseURL, request}) => {

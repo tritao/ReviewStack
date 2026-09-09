@@ -7,6 +7,8 @@
 
 import type {GitHubOrgAndRepo} from './jotai';
 
+import './AppHeader.css';
+
 import Link from './Link';
 import URLFor from './URLFor';
 import Username from './Username';
@@ -24,6 +26,7 @@ type Props = {
 export default function AppHeader({orgAndRepo}: Props): React.ReactElement {
   return (
     <Header
+      className="reviewstack-app-header"
       sx={{
         fontSize: 2,
         height: APP_HEADER_HEIGHT,
@@ -35,10 +38,12 @@ export default function AppHeader({orgAndRepo}: Props): React.ReactElement {
             <HomeIcon size="medium" aria-label="homepage" />
           </Link>
         </Box>
-        <Box>{orgAndRepo != null && <PullsLink {...orgAndRepo} />}</Box>
+        <Box className="reviewstack-app-header-repository">
+          {orgAndRepo != null && <PullsLink {...orgAndRepo} />}
+        </Box>
       </Header.Item>
       <Header.Item>
-        <Box>
+        <Box className="reviewstack-app-header-account">
           <ThemeSelector />
           <Username />
         </Box>
@@ -69,7 +74,9 @@ function ThemeSelector() {
   const sx = {'> [aria-hidden]': {display: 'none'}};
   return (
     <Text>
-      <span id="theme-switch-label">Dark Mode</span>:{' '}
+      <span id="theme-switch-label" className="reviewstack-theme-label">
+        Dark Mode:{' '}
+      </span>
       <ToggleSwitch
         checked={checked}
         onClick={onClick}

@@ -8,15 +8,32 @@
 .LoginDialog-container {
   display: flex;
   justify-content: center;
+  min-height: 100vh;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .LoginDialog {
   border-width: 1px;
   border-style: solid;
   padding: 8px;
-  position: absolute;
-  top: 10px;
-  width: 600px;
+  width: min(600px, 100%);
+  height: fit-content;
+  box-sizing: border-box;
+}
+
+.LoginDialog input[type='text'],
+.LoginDialog input:not([type]) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.LoginDialog pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .LoginDialog-oauth {
@@ -25,4 +42,16 @@
 
 .LoginDialog-divider {
   padding-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .LoginDialog-container {
+    padding: 0;
+  }
+
+  .LoginDialog {
+    border-left: 0;
+    border-right: 0;
+    padding: 16px;
+  }
 }
