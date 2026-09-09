@@ -109,7 +109,11 @@ function ViewportDiffFile({
   }, []);
 
   return (
-    <div ref={container} data-diff-file={path} style={{minHeight: shouldRender ? undefined : 96}}>
+    <div
+      ref={container}
+      data-diff-file={path}
+      tabIndex={-1}
+      style={{minHeight: shouldRender ? undefined : 96}}>
       {shouldRender ? children : <DiffFileSkeleton />}
     </div>
   );

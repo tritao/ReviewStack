@@ -67,6 +67,19 @@ export default function PullRequestLayout({
     }));
   });
 
+  const navigateFile = (direction: 1 | -1) => {
+    const files = Array.from(document.querySelectorAll<HTMLElement>('[data-diff-file]'));
+    if (files.length === 0) {
+      return;
+    }
+    const current = files.findIndex(file => file.getBoundingClientRect().bottom > 180);
+    const target = files[Math.max(0, Math.min(files.length - 1, current + direction))];
+    target?.scrollIntoView({behavior: 'smooth', block: 'start'});
+    target?.focus({preventScroll: true});
+  };
+  useCommand('NextFile', () => navigateFile(1));
+  useCommand('PreviousFile', () => navigateFile(-1));
+
   return (
     <Box className="reviewstack-pr-layout">
       <PullRequestHeader />

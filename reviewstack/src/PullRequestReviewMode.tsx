@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import {useCommand} from './KeyboardShortcuts';
 import {
   gitHubPullRequestComparableVersionsAtom,
   gitHubPullRequestReviewTargetAtom,
@@ -48,6 +49,8 @@ export default function PullRequestReviewMode(): React.ReactElement {
       updateReviewURL({mode: 'commit', commitID: commit.commit});
     }
   };
+  useCommand('PreviousCommit', () => selectCommit(selectedIndex - 1));
+  useCommand('NextCommit', () => selectCommit(selectedIndex + 1));
 
   return (
     <>
@@ -68,7 +71,10 @@ export default function PullRequestReviewMode(): React.ReactElement {
       </ButtonGroup>
       {target.type === 'commit' && (
         <>
-          <Button disabled={selectedIndex <= 0} onClick={() => selectCommit(selectedIndex - 1)}>
+          <Button
+            title="Previous commit (Alt+Up)"
+            disabled={selectedIndex <= 0}
+            onClick={() => selectCommit(selectedIndex - 1)}>
             Previous
           </Button>
           <ActionMenu>
@@ -89,6 +95,7 @@ export default function PullRequestReviewMode(): React.ReactElement {
             </ActionMenu.Overlay>
           </ActionMenu>
           <Button
+            title="Next commit (Alt+Down)"
             disabled={selectedIndex === -1 || selectedIndex >= commits.length - 1}
             onClick={() => selectCommit(selectedIndex + 1)}>
             Next

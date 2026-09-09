@@ -35,6 +35,8 @@ export enum KeyCode {
   B = 66,
   C = 67,
   D = 68,
+  J = 74,
+  K = 75,
   N = 78,
   P = 80,
   R = 82,
