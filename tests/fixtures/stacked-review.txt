@@ -1,0 +1,3 @@
+ReviewStack browser fixture
+
+This first commit gives Commit mode a stable, reviewable change.
