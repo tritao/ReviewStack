@@ -11,9 +11,30 @@ test('login and OAuth callback are served as application routes', async ({page, 
   expect(errors).toEqual([]);
 });
 
-test('fixture PR exposes layer and commit review modes', async ({browser, baseURL}) => {
+test('fixture PR exposes layer and commit review modes', async ({browser, baseURL, request}) => {
   const token = process.env.REVIEWSTACK_E2E_GITHUB_TOKEN;
   test.skip(!token, 'Set REVIEWSTACK_E2E_GITHUB_TOKEN to run the authenticated production check.');
+
+  const apiResponse = await request.post('https://api.github.com/graphql', {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${token}`,
+    },
+    data: {
+      query: `query ReviewStackFixture {
+        repository(owner: "tritao", name: "ReviewStack") {
+          pullRequest(number: 1) { number }
+        }
+      }`,
+    },
+  });
+  const apiBody = await apiResponse.json().catch(() => null);
+  if (!apiResponse.ok() || apiBody?.data?.repository?.pullRequest?.number !== 1) {
+    throw new Error(
+      `GitHub fixture preflight failed (${apiResponse.status()}): ${JSON.stringify(apiBody)}`,
+    );
+  }
+
   const context = await browser.newContext();
   await context.addInitScript(githubToken => {
     localStorage.setItem('github.hostname', 'github.com');
