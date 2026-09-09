@@ -33,9 +33,9 @@ jobs:
       - run: yarn build
         env:
           PUBLIC_URL: /ReviewStack
-          REACT_APP_GITHUB_OAUTH_CLIENT_ID: ${{ vars.GITHUB_OAUTH_CLIENT_ID }}
+          REACT_APP_GITHUB_OAUTH_CLIENT_ID: ${{ vars.REVIEWSTACK_OAUTH_CLIENT_ID }}
           REACT_APP_GITHUB_OAUTH_CALLBACK_URL: https://tritao.github.io/ReviewStack/auth/callback
-          REACT_APP_GITHUB_OAUTH_TOKEN_ENDPOINT: ${{ vars.GITHUB_OAUTH_TOKEN_ENDPOINT }}
+          REACT_APP_GITHUB_OAUTH_TOKEN_ENDPOINT: ${{ vars.REVIEWSTACK_OAUTH_TOKEN_ENDPOINT }}
       - name: Add SPA fallback
         run: cp reviewstack.dev/build/index.html reviewstack.dev/build/404.html
       - uses: actions/configure-pages@v5

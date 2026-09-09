@@ -80,9 +80,9 @@ One-time deployment setup:
 2. From `oauth-worker/`, authenticate Wrangler and set
    `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` with
    `npx wrangler secret put NAME`, then run `npx wrangler deploy`.
-3. Add repository Actions variables `GITHUB_OAUTH_CLIENT_ID` and
-   `GITHUB_OAUTH_TOKEN_ENDPOINT` (the deployed Worker's `/token` URL), then
-   rebuild Pages. For CI worker deployment, also add the
+3. Add repository Actions variables `REVIEWSTACK_OAUTH_CLIENT_ID` and
+   `REVIEWSTACK_OAUTH_TOKEN_ENDPOINT` (the deployed Worker's `/token` URL),
+   then rebuild Pages. For CI worker deployment, also add the
    `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets and run
    the **Deploy OAuth worker** workflow manually.
 
