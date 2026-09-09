@@ -47,10 +47,6 @@ export default function PullRequestHeader(): React.ReactElement | null {
       <Box className="reviewstack-pr-controls" gridGap={2}>
         <PullRequestStateLabel reviewDecision={reviewDecision ?? null} state={state} />
         <PullRequestStack />
-        <Box as="label" display="flex" alignItems="center" gridGap={1}>
-          <Checkbox checked={reviewed} onChange={toggleReviewed} />
-          <Text>Reviewed</Text>
-        </Box>
         {/*
           Our goal here is to minimize re-rendering when the user selects a
           different value from <PullRequestStack>, so we apply <Suspense> in a
@@ -65,6 +61,20 @@ export default function PullRequestHeader(): React.ReactElement | null {
         <Suspense fallback={null}>
           <PullRequestVersions />
         </Suspense>
+        <Box
+          as="label"
+          className="reviewstack-reviewed-label"
+          display="flex"
+          alignItems="center"
+          gridGap={1}
+          title="Mark the selected review revision as reviewed">
+          <Checkbox
+            checked={reviewed}
+            onChange={toggleReviewed}
+            aria-label="Mark selected revision as reviewed"
+          />
+          <Text className="reviewstack-reviewed-text">Reviewed</Text>
+        </Box>
       </Box>
     </Box>
   );

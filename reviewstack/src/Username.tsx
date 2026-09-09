@@ -8,7 +8,8 @@
 import type {GitHubTokenState} from './jotai';
 
 import {gitHubTokenPersistenceAtom, gitHubTokenStateAtom, gitHubUsernameAtom} from './jotai';
-import {Link, Text} from '@primer/react';
+import {SignOutIcon} from '@primer/octicons-react';
+import {ActionList, ActionMenu} from '@primer/react';
 import {useAtomValue, useSetAtom} from 'jotai';
 import {loadable} from 'jotai/utils';
 import {useCallback, useMemo} from 'react';
@@ -40,22 +41,33 @@ export default function Username(): React.ReactElement | null {
   if (tokenState.state === 'hasValue' && token != null) {
     if (username != null) {
       return (
-        <>
-          <Text fontWeight="bold">{username}</Text>
-          {' | '}
-          <Link as="button" onClick={onLogout}>
-            Logout
-          </Link>
-        </>
+        <ActionMenu>
+          <ActionMenu.Button aria-label={`Account menu for ${username}`}>
+            {username}
+          </ActionMenu.Button>
+          <ActionMenu.Overlay align="end">
+            <ActionList>
+              <ActionList.Item onSelect={onLogout}>
+                <ActionList.LeadingVisual>
+                  <SignOutIcon />
+                </ActionList.LeadingVisual>
+                Log out
+              </ActionList.Item>
+            </ActionList>
+          </ActionMenu.Overlay>
+        </ActionMenu>
       );
     } else {
       // we have a token but no username: we still offer the logout button
       return (
-        <>
-          <Link as="button" onClick={onLogout}>
-            Logout
-          </Link>
-        </>
+        <ActionMenu>
+          <ActionMenu.Button aria-label="Account menu">Account</ActionMenu.Button>
+          <ActionMenu.Overlay align="end">
+            <ActionList>
+              <ActionList.Item onSelect={onLogout}>Log out</ActionList.Item>
+            </ActionList>
+          </ActionMenu.Overlay>
+        </ActionMenu>
       );
     }
   }

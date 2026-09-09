@@ -19,6 +19,7 @@
   display: flex;
   align-items: center;
   min-width: 0;
+  gap: 4px;
   white-space: nowrap;
 }
 
@@ -27,13 +28,7 @@
     padding-inline: 12px !important;
   }
 
-  .reviewstack-theme-label,
-  .reviewstack-app-header-account > span:last-child {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
+  .reviewstack-app-header-account button {
+    padding-inline: 8px;
   }
 }

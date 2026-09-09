@@ -14,8 +14,8 @@ import URLFor from './URLFor';
 import Username from './Username';
 import {APP_HEADER_HEIGHT} from './constants';
 import {primerColorModeAtom} from './jotai/atoms';
-import {HomeIcon} from '@primer/octicons-react';
-import {Box, Header, Text, ToggleSwitch} from '@primer/react';
+import {HomeIcon, MoonIcon, SunIcon} from '@primer/octicons-react';
+import {Box, Header, IconButton, Text} from '@primer/react';
 import {useAtom} from 'jotai';
 import {useCallback} from 'react';
 
@@ -70,20 +70,13 @@ function ThemeSelector() {
   const onClick = useCallback(() => {
     setColorMode(colorMode === 'night' ? 'day' : 'night');
   }, [colorMode, setColorMode]);
-  // sx trick to hide label taken from https://github.com/primer/react/issues/2078
-  const sx = {'> [aria-hidden]': {display: 'none'}};
   return (
-    <Text>
-      <span id="theme-switch-label" className="reviewstack-theme-label">
-        Dark Mode:{' '}
-      </span>
-      <ToggleSwitch
-        checked={checked}
-        onClick={onClick}
-        size="small"
-        aria-labelledby="theme-switch-label"
-        sx={sx}
-      />{' '}
-    </Text>
+    <IconButton
+      aria-label={checked ? 'Use light theme' : 'Use dark theme'}
+      title={checked ? 'Use light theme' : 'Use dark theme'}
+      icon={checked ? SunIcon : MoonIcon}
+      variant="invisible"
+      onClick={onClick}
+    />
   );
 }
