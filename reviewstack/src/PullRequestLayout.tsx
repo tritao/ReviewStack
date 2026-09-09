@@ -13,11 +13,11 @@ import PullRequest from './PullRequest';
 import PullRequestHeader from './PullRequestHeader';
 import PullRequestTimeline from './PullRequestTimeline';
 import PullRequestTimelineCommentInput from './PullRequestTimelineCommentInput';
-import {APP_HEADER_HEIGHT} from './constants';
 import {gitHubOrgAndRepoAtom, gitHubPullRequestIDAtom} from './jotai';
+import {CommentDiscussionIcon} from '@primer/octicons-react';
 import {Box, Text} from '@primer/react';
 import {atom, useSetAtom} from 'jotai';
-import React, {Component, Suspense, useEffect} from 'react';
+import React, {Component, Suspense, useEffect, useState} from 'react';
 import {Drawers} from 'shared/Drawers';
 
 import './PullRequestLayout.css';
@@ -40,6 +40,7 @@ export default function PullRequestLayout({
   repo: string;
   number: number;
 }): React.ReactElement {
+  const [isNarrow, setIsNarrow] = useState(() => window.matchMedia('(max-width: 600px)').matches);
   const setOrgAndRepo = useSetAtom(gitHubOrgAndRepoAtom);
   const setPullRequestID = useSetAtom(gitHubPullRequestIDAtom);
 
@@ -50,6 +51,13 @@ export default function PullRequestLayout({
   useEffect(() => {
     setPullRequestID(number);
   }, [number, setPullRequestID]);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 600px)');
+    const update = () => setIsNarrow(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   const setDrawerState = useSetAtom(drawerStateAtom);
   useCommand('ToggleSidebar', () => {
@@ -63,19 +71,42 @@ export default function PullRequestLayout({
     <Box className="reviewstack-pr-layout">
       <PullRequestHeader />
       <Suspense fallback={<CenteredSpinner message="Loading pull request..." />}>
-        <Drawers
-          drawerState={drawerStateAtom}
-          errorBoundary={ErrorBoundary}
-          rightLabel={<Text className="drawer-label-text">...</Text>}
-          right={<TimelineDrawer />}>
-          <Box display="flex" flexDirection="row">
-            <Box className="reviewstack-pr-workspace" overflow="auto">
-              <PullRequest />
+        {isNarrow ? (
+          <Drawers
+            drawerState={drawerStateAtom}
+            errorBoundary={ErrorBoundary}
+            bottomLabel={<ReviewDrawerLabel />}
+            bottom={<TimelineDrawer />}>
+            <Box display="flex" flexDirection="row">
+              <Box className="reviewstack-pr-workspace" overflow="auto">
+                <PullRequest />
+              </Box>
             </Box>
-          </Box>
-        </Drawers>
+          </Drawers>
+        ) : (
+          <Drawers
+            drawerState={drawerStateAtom}
+            errorBoundary={ErrorBoundary}
+            rightLabel={<ReviewDrawerLabel />}
+            right={<TimelineDrawer />}>
+            <Box display="flex" flexDirection="row">
+              <Box className="reviewstack-pr-workspace" overflow="auto">
+                <PullRequest />
+              </Box>
+            </Box>
+          </Drawers>
+        )}
       </Suspense>
     </Box>
+  );
+}
+
+function ReviewDrawerLabel() {
+  return (
+    <>
+      <CommentDiscussionIcon />
+      <Text className="drawer-label-text">Review</Text>
+    </>
   );
 }
 

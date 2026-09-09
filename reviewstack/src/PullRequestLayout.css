@@ -33,4 +33,12 @@
     --reviewstack-pr-header-height: 132px;
     --reviewstack-workspace-height: calc(100vh - 192px);
   }
+
+  .reviewstack .drawer-bottom .drawer-label-text {
+    margin-left: 0;
+  }
+
+  .reviewstack .drawer-bottom > div:nth-child(3) {
+    width: 100%;
+  }
 }
