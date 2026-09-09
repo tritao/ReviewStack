@@ -49,15 +49,23 @@ function PullRequests({
     const {number, titleHTML, repository, state, reviewDecision} = pullRequest;
     const {nameWithOwner} = repository;
     return (
-      <Box key={index}>
-        <Box sx={{display: 'inline-block', width: 100, pb: 2}}>
+      <Box
+        key={index}
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'max-content minmax(0, 1fr)',
+          alignItems: 'start',
+          columnGap: 3,
+          pb: 2,
+        }}>
+        <Box>
           <PullRequestStateLabel
             reviewDecision={reviewDecision ?? null}
             state={state}
             variant="small"
           />
         </Box>
-        <Box sx={{display: 'inline'}}>
+        <Box sx={{minWidth: 0}}>
           <Link href={`/${nameWithOwner}/pull/${number}`}>
             #{`${number}`} ({`${nameWithOwner}`}){' '}
             <TrustedRenderedMarkdown trustedHTML={titleHTML} inline={true} />

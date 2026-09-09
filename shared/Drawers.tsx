@@ -11,7 +11,7 @@ import type {ComponentClass} from 'react';
 
 import {debounce} from './debounce';
 import {useAtom} from 'jotai';
-import {createElement, useCallback, useRef} from 'react';
+import {useCallback, useRef} from 'react';
 
 import './Drawers.css';
 
@@ -114,6 +114,7 @@ export function Drawer({
   errorBoundary: ErrorBoundaryComponent;
   children: NonNullReactElement;
 }) {
+  const ErrorBoundary = errorBoundary;
   const isVertical = side === 'top' || side === 'bottom';
   const dragHandleElement = useRef<HTMLDivElement>(null);
 
@@ -194,7 +195,7 @@ export function Drawer({
             className="resizable-drag-handle"
             onMouseDown={(e: React.MouseEvent) => startResizing(e, state.size)}
           />
-          {createElement(errorBoundary, null, children)}
+          <ErrorBoundary>{children}</ErrorBoundary>
         </>
       ) : null}
     </div>

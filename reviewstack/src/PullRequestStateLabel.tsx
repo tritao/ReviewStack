@@ -24,7 +24,10 @@ export default function PullRequestStateLabel({
 }) {
   const {status, label, color} = statusAndLabel(state, reviewDecision);
   return (
-    <StateLabel status={status} variant={variant} sx={{backgroundColor: color}}>
+    <StateLabel
+      status={status}
+      variant={variant}
+      sx={{backgroundColor: color, whiteSpace: 'nowrap'}}>
       {label}
     </StateLabel>
   );

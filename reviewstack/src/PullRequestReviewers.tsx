@@ -24,6 +24,16 @@ import {useAtom, useAtomValue, useSetAtom} from 'jotai';
 import {loadable} from 'jotai/utils';
 import {useCallback, useEffect, useMemo} from 'react';
 
+// Primer 35's AvatarToken type incorrectly requires React's non-DOM
+// onPointerEnterCapture/onPointerLeaveCapture props with this TypeScript version.
+// Narrowing the public props avoids forwarding those invalid handlers to the DOM.
+const ReviewerAvatarToken = AvatarToken as unknown as React.ComponentType<{
+  avatarSrc: string;
+  text: string;
+  size: 'large';
+  onRemove?: () => void;
+}>;
+
 export default function PullRequestReviewers(): React.ReactElement {
   const refreshPullRequest = useRefreshPullRequest();
   const pullRequest = useAtomValue(gitHubPullRequestAtom);
@@ -118,7 +128,14 @@ export default function PullRequestReviewers(): React.ReactElement {
         });
       }
     },
-    [client, pullRequest, pullRequestReviewers, refreshPullRequest, setPullRequestReviewers, setNotification],
+    [
+      client,
+      pullRequest,
+      pullRequestReviewers,
+      refreshPullRequest,
+      setPullRequestReviewers,
+      setNotification,
+    ],
   );
 
   const label = !viewerCanUpdate ? (
@@ -142,14 +159,12 @@ export default function PullRequestReviewers(): React.ReactElement {
       {label}
       <Box display="flex" flexWrap="wrap" gridGap={1}>
         {pullRequestReviewers.reviewers.map(user => (
-          <AvatarToken
+          <ReviewerAvatarToken
             key={user.id}
             avatarSrc={user.avatarUrl}
             text={user.login}
             size="large"
             onRemove={!viewerCanUpdate ? undefined : () => updateReviewers(user, true)}
-            onPointerEnterCapture={undefined}
-            onPointerLeaveCapture={undefined}
           />
         ))}
       </Box>
