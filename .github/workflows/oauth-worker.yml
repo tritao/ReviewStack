@@ -23,7 +23,12 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - run: node --test oauth-worker/test/*.test.js
+          cache: npm
+          cache-dependency-path: oauth-worker/package-lock.json
+      - run: npm ci
+        working-directory: oauth-worker
+      - run: npm test
+        working-directory: oauth-worker
 
   deploy:
     if: github.event_name != 'pull_request' && vars.CLOUDFLARE_WORKER_CI_ENABLED == 'true'
@@ -37,9 +42,13 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: oauth-worker/package-lock.json
+      - run: npm ci
+        working-directory: oauth-worker
       - name: Deploy worker
         working-directory: oauth-worker
-        run: npx --yes wrangler@4 deploy
+        run: npm run deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

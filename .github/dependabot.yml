@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      javascript-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: npm
+    directory: /oauth-worker
+    schedule:
+      interval: weekly
+    groups:
+      wrangler:
+        patterns: ['wrangler']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']

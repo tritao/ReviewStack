@@ -15,7 +15,9 @@ type LinkProps = {
 let CustomLinkElement: React.FunctionComponent<LinkProps & {style: React.CSSProperties}> | null =
   null;
 
-export function setCustomLinkElement(component: React.FunctionComponent) {
+export function setCustomLinkElement(
+  component: React.FunctionComponent<LinkProps & {style: React.CSSProperties}>,
+) {
   CustomLinkElement = component;
 }
 

@@ -14,11 +14,6 @@ defaults.__set__('configFactory', env => {
   config.experiments = {
     asyncWebAssembly: true,
   };
-  config.externals = {
-    react: 'React',
-    'react-dom': 'ReactDOM',
-  };
-  config.output.library = 'ReviewStack';
   config.module.rules.shift({
     test: /^generated\/textmate\/(.*)\.(json|plist)$/,
     use: [

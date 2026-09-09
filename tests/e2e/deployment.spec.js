@@ -1,13 +1,34 @@
 const {expect, test} = require('@playwright/test');
 
-test('login and OAuth callback are served as application routes', async ({page, request}) => {
+test('login and OAuth callback are served as application routes', async ({
+  page,
+  request,
+  baseURL,
+}) => {
   const errors = [];
+  const thirdPartyScripts = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('request', request => {
+    if (
+      request.resourceType() === 'script' &&
+      new URL(request.url()).origin !== new URL(baseURL).origin
+    ) {
+      thirdPartyScripts.push(request.url());
+    }
+  });
   const callback = await request.get('auth/callback/');
   expect(callback.status()).toBe(200);
   expect(await callback.text()).toContain('<div id="root">');
   await page.goto('./');
-  await expect(page.getByRole('button', {name: 'Sign in with GitHub'})).toBeVisible();
+  await expect(page.getByText(/^Sign in with (GitHub|a token)$/).first()).toBeVisible();
+  const scriptSources = await page
+    .locator('script[src]')
+    .evaluateAll(scripts => scripts.map(script => script.src));
+  expect(scriptSources.length).toBeGreaterThan(0);
+  expect(scriptSources.every(source => new URL(source).origin === new URL(baseURL).origin)).toBe(
+    true,
+  );
+  expect(thirdPartyScripts).toEqual([]);
   expect(errors).toEqual([]);
 });
 

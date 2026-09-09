@@ -5,8 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import LazyLoginDialog from './LazyLoginDialog';
-import {setCustomLoginDialogComponent} from 'reviewstack/src/LoginDialog';
+import './bootstrap';
 
 export {
   App,
@@ -16,7 +15,3 @@ export {
   setCustomNavigateHook,
   ThemeProvider,
 } from 'reviewstack/src/index';
-
-export function configureLoginDialog() {
-  setCustomLoginDialogComponent(LazyLoginDialog);
-}

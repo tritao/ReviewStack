@@ -15,13 +15,6 @@ config.experiments = {
   // though it is not completely clear.
   asyncWebAssembly: true,
 };
-config.externals = {
-  react: 'React',
-  'react-dom': 'ReactDOM',
-};
-config.output.library = 'ReviewStack';
-config.output.libraryTarget = 'umd';
-
 // ts-loader is required to reference external typescript projects/files (non-transpiled)
 config.module.rules.push({
   test: /\.tsx?$/,
