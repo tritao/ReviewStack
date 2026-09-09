@@ -28,7 +28,7 @@ import {primerColorModeAtom} from './jotai/atoms';
 import {useSplitDiffViewData} from './jotai/hooks/';
 import {groupBy} from './utils';
 import {UnfoldIcon} from '@primer/octicons-react';
-import {Box, Spinner, Text} from '@primer/react';
+import {Box, Button, Spinner, Text} from '@primer/react';
 import {diffChars} from 'diff';
 import {useAtomValue} from 'jotai';
 import React, {Suspense, useCallback, useEffect, useMemo, useState} from 'react';
@@ -102,10 +102,7 @@ export default function SplitDiffView({
     return (
       <Box borderWidth="1px" borderStyle="solid" borderColor="border.default" borderRadius={2}>
         <FileHeader path={path} open={open} onChangeOpen={open => setOpen(open)} />
-        <Box padding={3} display="flex" justifyContent="center" alignItems="center">
-          <Spinner size="small" />
-          <Text marginLeft={2}>Loading diff...</Text>
-        </Box>
+        <DiffLoadingState />
       </Box>
     );
   }
@@ -115,7 +112,7 @@ export default function SplitDiffView({
     const errorMessage =
       typeof loadable.error === 'string'
         ? loadable.error
-        : (loadable.error?.message ?? 'Unknown error');
+        : loadable.error?.message ?? 'Unknown error';
     return (
       <Box borderWidth="1px" borderStyle="solid" borderColor="border.default" borderRadius={2}>
         <FileHeader path={path} open={open} onChangeOpen={open => setOpen(open)} />
@@ -156,6 +153,43 @@ export default function SplitDiffView({
         ) : (
           <LargeDiffPlaceholder onLoadDiff={handleLoadDiff} totalLines={totalLines} />
         ))}
+    </Box>
+  );
+}
+
+function DiffLoadingState(): React.ReactElement {
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  useEffect(() => {
+    const startedAt = Date.now();
+    const timer = window.setInterval(
+      () => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const message =
+    elapsedSeconds < 3
+      ? 'Fetching file contents…'
+      : elapsedSeconds < 8
+      ? 'Computing and highlighting diff…'
+      : `Still preparing this diff (${elapsedSeconds}s)…`;
+
+  return (
+    <Box padding={3} display="flex" flexDirection="column" alignItems="center" gridGap={2}>
+      <Box display="flex" justifyContent="center" alignItems="center">
+        <Spinner size="small" />
+        <Text marginLeft={2} aria-live="polite">
+          {message}
+        </Text>
+      </Box>
+      <Box width="70%" height={8} bg="neutral.muted" borderRadius={2} />
+      <Box width="55%" height={8} bg="neutral.muted" borderRadius={2} />
+      {elapsedSeconds >= 8 && (
+        <Button size="small" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      )}
     </Box>
   );
 }

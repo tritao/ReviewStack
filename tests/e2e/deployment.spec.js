@@ -102,5 +102,11 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   await expect(page).toHaveURL(/(?:\?|&)mode=commit(?:&|$)/);
   expect(errors).toEqual([]);
   expect(reactWarnings).toEqual([]);
+
+  await page.setViewportSize({width: 390, height: 844});
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBeLessThanOrEqual(390);
+  await expect(page.getByText('Review', {exact: true})).toBeVisible();
   await context.close();
 });

@@ -60,7 +60,9 @@ export default function PullRequestSignals(): React.ReactElement {
                 Checks
               </Text>
               <Text display="block" fontSize={1}>
-                {successful} out of {checks(checkRuns.length)} successful
+                {checkRuns.length === 0
+                  ? 'No checks reported'
+                  : `${successful} out of ${checks(checkRuns.length)} successful`}
               </Text>
             </Box>
             {open ? <ChevronUpIcon size={24} /> : <ChevronDownIcon size={24} />}
