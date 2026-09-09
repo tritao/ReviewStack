@@ -9,13 +9,17 @@ import PullRequestStack from './PullRequestStack';
 import PullRequestStateLabel from './PullRequestStateLabel';
 import PullRequestVersions from './PullRequestVersions';
 import TrustedRenderedMarkdown from './TrustedRenderedMarkdown';
-import {gitHubPullRequestAtom} from './jotai';
-import {Box, Link, Text} from '@primer/react';
+import {gitHubPullRequestAtom, gitHubPullRequestComparableVersionsAtom} from './jotai';
+import {useReviewProgress} from './reviewProgress';
+import {Box, Checkbox, Link, Text} from '@primer/react';
 import {useAtomValue} from 'jotai';
 import {Suspense} from 'react';
 
 export default function PullRequestHeader(): React.ReactElement | null {
   const pullRequest = useAtomValue(gitHubPullRequestAtom);
+  const comparableVersions = useAtomValue(gitHubPullRequestComparableVersionsAtom);
+  const reviewID = comparableVersions?.afterCommitID ?? String(pullRequest?.number ?? 'unknown');
+  const [reviewed, toggleReviewed] = useReviewProgress('commit', reviewID);
 
   if (pullRequest == null) {
     return null;
@@ -43,6 +47,10 @@ export default function PullRequestHeader(): React.ReactElement | null {
       <Box className="reviewstack-pr-controls" gridGap={2}>
         <PullRequestStateLabel reviewDecision={reviewDecision ?? null} state={state} />
         <PullRequestStack />
+        <Box as="label" display="flex" alignItems="center" gridGap={1}>
+          <Checkbox checked={reviewed} onChange={toggleReviewed} />
+          <Text>Reviewed</Text>
+        </Box>
         {/*
           Our goal here is to minimize re-rendering when the user selects a
           different value from <PullRequestStack>, so we apply <Suspense> in a

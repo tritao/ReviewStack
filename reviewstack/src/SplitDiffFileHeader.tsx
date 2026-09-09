@@ -5,8 +5,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import {useReviewProgress} from './reviewProgress';
 import {ChevronDownIcon, ChevronRightIcon} from '@primer/octicons-react';
-import {Box, Text, Tooltip} from '@primer/react';
+import {Box, Checkbox, Text, Tooltip} from '@primer/react';
 
 export function FileHeader({
   path,
@@ -17,6 +18,7 @@ export function FileHeader({
   open?: boolean;
   onChangeOpen?: (open: boolean) => void;
 }) {
+  const [viewed, toggleViewed] = useReviewProgress('file', path);
   // Even though the enclosing <SplitDiffView> will have border-radius set, we
   // have to define it again here or things don't look right.
   const color = 'fg.muted';
@@ -79,6 +81,10 @@ export function FileHeader({
         </Box>
       )}
       <Box sx={{display: 'flex', flexGrow: 1}}>{filePathParts}</Box>
+      <Box as="label" display="flex" alignItems="center" gridGap={1} marginLeft={2}>
+        <Checkbox checked={viewed} onChange={toggleViewed} aria-label={`Mark ${path} as viewed`} />
+        <Text fontSize={12}>Viewed</Text>
+      </Box>
     </Box>
   );
 }
