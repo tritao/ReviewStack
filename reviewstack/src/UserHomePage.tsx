@@ -6,15 +6,20 @@
  */
 
 import type {HomePagePullRequestFragment, UserHomePageQueryData} from './generated/graphql';
+import type {FormEvent} from 'react';
+
+import './UserHomePage.css';
 
 import CenteredSpinner from './CenteredSpinner';
 import Link from './Link';
 import PullRequestStateLabel from './PullRequestStateLabel';
 import TrustedRenderedMarkdown from './TrustedRenderedMarkdown';
 import {gitHubUserHomePageDataAtom} from './jotai/atoms';
-import {Box, Heading, Text} from '@primer/react';
+import {parseReviewTarget} from './reviewTarget';
+import useNavigate from './useNavigate';
+import {Box, Button, Heading, Text, TextInput} from '@primer/react';
 import {useAtomValue} from 'jotai';
-import {Suspense} from 'react';
+import {Suspense, useState} from 'react';
 import {notEmpty} from 'shared/utils';
 
 export default function UserHomePage(): React.ReactElement {
@@ -28,10 +33,37 @@ export default function UserHomePage(): React.ReactElement {
 function UserHomePageRoot(): React.ReactElement {
   const data = useAtomValue(gitHubUserHomePageDataAtom);
   return (
-    <Box>
+    <Box className="reviewstack-home">
+      <QuickOpen />
       <ReviewRequestsForUser reviewRequests={data?.search.nodes ?? []} />
       <PullRequestsForUser pullRequests={data?.viewer.pullRequests.nodes ?? []} />
       <RepositoriesForUser repos={data?.viewer.repositories.nodes ?? []} />
+    </Box>
+  );
+}
+
+function QuickOpen(): React.ReactElement {
+  const navigate = useNavigate();
+  const [value, setValue] = useState('');
+  const target = parseReviewTarget(value);
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (target != null) {
+      navigate(target);
+    }
+  };
+  return (
+    <Box as="form" className="reviewstack-quick-open" onSubmit={submit}>
+      <TextInput
+        block
+        aria-label="GitHub pull request or repository"
+        placeholder="Paste a GitHub PR URL or enter owner/repository#123"
+        value={value}
+        onChange={event => setValue(event.target.value)}
+      />
+      <Button type="submit" variant="primary" disabled={target == null}>
+        Open review
+      </Button>
     </Box>
   );
 }
@@ -87,7 +119,7 @@ function ReviewRequestsForUser({
     .filter(notEmpty);
 
   return (
-    <Box sx={{margin: 20}}>
+    <Box className="reviewstack-home-section">
       <Heading sx={{fontSize: 20, mb: 2}}>
         <Text>Review Requests</Text>
       </Heading>
@@ -106,7 +138,7 @@ function PullRequestsForUser({
   pullRequests: Array<HomePagePullRequestFragment | null>;
 }): React.ReactElement {
   return (
-    <Box sx={{margin: 20}}>
+    <Box className="reviewstack-home-section">
       <Heading sx={{fontSize: 20, mb: 2}}>
         <Text>Recent Pull Requests</Text>
       </Heading>
@@ -135,7 +167,7 @@ function RepositoriesForUser({
     }
   });
   return (
-    <Box sx={{margin: 20}}>
+    <Box className="reviewstack-home-section">
       <Heading sx={{fontSize: 20, mb: 2}}>
         <Text>Pull Requests for Recent Repositories</Text>
       </Heading>

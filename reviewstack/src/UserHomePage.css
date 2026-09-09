@@ -1,0 +1,27 @@
+.reviewstack-home {
+  width: min(100% - 32px, 1100px);
+  margin: 0 auto;
+  padding-block: 24px;
+}
+
+.reviewstack-quick-open {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.reviewstack-home-section {
+  margin: 0 0 28px;
+}
+
+@media (max-width: 600px) {
+  .reviewstack-home {
+    width: min(100% - 24px, 1100px);
+    padding-block: 16px;
+  }
+
+  .reviewstack-quick-open {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
