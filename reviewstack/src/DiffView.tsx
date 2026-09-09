@@ -17,7 +17,7 @@ import joinPath from './joinPath';
 import {fileContentsDeltaAtom, gitHubBlobAtom} from './jotai/atoms';
 import {Box, Button, Flash, Text} from '@primer/react';
 import {useAtomValue} from 'jotai';
-import React, {Component, Suspense, useMemo} from 'react';
+import React, {Component, Suspense, useEffect, useMemo, useRef, useState} from 'react';
 
 function DiffFileSkeleton(): React.ReactElement {
   return (
@@ -60,13 +60,15 @@ export default function DiffView({diff, isPullRequest}: {diff: Diff; isPullReque
           const name = change.type === 'modify' ? change.before.name : change.entry.name;
           const key = `${change.basePath}/${name}`;
           return (
-            <DiffFileErrorBoundary key={key} path={getPathForDisplay(change)}>
-              <Suspense fallback={<DiffFileSkeleton />}>
-                <Box paddingY={1}>
-                  <ChangeDisplay change={change} isPullRequest={isPullRequest} />
-                </Box>
-              </Suspense>
-            </DiffFileErrorBoundary>
+            <ViewportDiffFile key={key} path={getPathForDisplay(change)}>
+              <DiffFileErrorBoundary path={getPathForDisplay(change)}>
+                <Suspense fallback={<DiffFileSkeleton />}>
+                  <Box paddingY={1}>
+                    <ChangeDisplay change={change} isPullRequest={isPullRequest} />
+                  </Box>
+                </Suspense>
+              </DiffFileErrorBoundary>
+            </ViewportDiffFile>
           );
         })}
       </div>
@@ -74,6 +76,43 @@ export default function DiffView({diff, isPullRequest}: {diff: Diff; isPullReque
   } else {
     return <div>commit not found or fetched from GitHub URL above</div>;
   }
+}
+
+/** Mount expensive file diffs shortly before they enter the scrolling viewport. */
+function ViewportDiffFile({
+  path,
+  children,
+}: {
+  path: string;
+  children: React.ReactNode;
+}): React.ReactElement {
+  const container = useRef<HTMLDivElement>(null);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  useEffect(() => {
+    const element = container.current;
+    if (element == null || typeof IntersectionObserver === 'undefined') {
+      setShouldRender(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          setShouldRender(true);
+          observer.disconnect();
+        }
+      },
+      {rootMargin: '800px 0px'},
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={container} data-diff-file={path} style={{minHeight: shouldRender ? undefined : 96}}>
+      {shouldRender ? children : <DiffFileSkeleton />}
+    </div>
+  );
 }
 
 function getPathForDisplay(change: CommitChange): string {
