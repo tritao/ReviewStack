@@ -22,15 +22,6 @@ import {useAtom, useAtomValue, useSetAtom} from 'jotai';
 import {useCallback, useEffect, useMemo} from 'react';
 import {notEmpty} from 'shared/utils';
 
-// Primer 35's IssueLabelToken type incorrectly requires React's non-DOM
-// onPointerEnterCapture/onPointerLeaveCapture props with this TypeScript version.
-// Narrowing the public props avoids forwarding those invalid handlers to the DOM.
-const PullRequestLabelToken = IssueLabelToken as unknown as React.ComponentType<{
-  text: string;
-  fillColor: string;
-  onRemove?: () => void;
-}>;
-
 export default function PullRequestLabels(): React.ReactElement {
   const pullRequest = useAtomValue(gitHubPullRequestAtom);
   const [pullRequestLabels, setPullRequestLabels] = useAtom(gitHubPullRequestLabelsAtom);
@@ -117,7 +108,7 @@ export default function PullRequestLabels(): React.ReactElement {
       {label}
       <Box display="flex" flexWrap="wrap" gridGap={1}>
         {pullRequestLabels.map(({id, name, color}) => (
-          <PullRequestLabelToken
+          <IssueLabelToken
             key={id}
             text={name}
             fillColor={`#${color}`}
