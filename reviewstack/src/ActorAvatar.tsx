@@ -57,7 +57,7 @@ export default function ActorAvatar({login, size = 24, url}: Props): React.React
     return avatar;
   }
 
-  return <Tooltip aria-label={login}>{avatar}</Tooltip>;
+  return <ActorTooltip text={login}>{avatar}</ActorTooltip>;
 }
 
 function AvatarWithFallback({
@@ -126,3 +126,7 @@ const fallbackAvatarColors = [
   '#bdc3c7',
   '#7f8c8d',
 ];
+const ActorTooltip = Tooltip as unknown as React.ComponentType<{
+  text: string;
+  children: React.ReactNode;
+}>;

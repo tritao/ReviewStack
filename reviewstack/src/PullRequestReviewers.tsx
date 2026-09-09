@@ -143,7 +143,7 @@ export default function PullRequestReviewers(): React.ReactElement {
   ) : (
     <ActionMenu>
       <ActionMenu.Anchor>
-        <Button trailingIcon={GearIcon}>Reviewers</Button>
+        <Button trailingVisual={GearIcon}>Reviewers</Button>
       </ActionMenu.Anchor>
       <ActionMenu.Overlay width="medium">
         <RepoAssignableUsersInput

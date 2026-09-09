@@ -33,8 +33,8 @@ export function FileHeader({
         return (
           <span className="file-header-copyable-path" key={idx}>
             {acc}
-            <Tooltip
-              aria-label={`Copy ${pathSoFar}`}
+            <PathTooltip
+              text={`Copy ${pathSoFar}`}
               direction="se"
               className="file-header-path-element">
               <span
@@ -44,7 +44,7 @@ export function FileHeader({
                 {part}
                 {idx < pathParts.length - 1 ? pathSeparator : ''}
               </span>
-            </Tooltip>
+            </PathTooltip>
           </span>
         );
       }, <span />)}
@@ -82,3 +82,9 @@ export function FileHeader({
     </Box>
   );
 }
+const PathTooltip = Tooltip as unknown as React.ComponentType<{
+  text: string;
+  direction?: 'se';
+  className?: string;
+  children: React.ReactNode;
+}>;

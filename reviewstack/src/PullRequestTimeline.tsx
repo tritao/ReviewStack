@@ -25,6 +25,7 @@ import CenteredSpinner from './CenteredSpinner';
 import CommitLink from './CommitLink';
 import PendingLabel from './PendingLabel';
 import PullRequestReviewComment from './PullRequestReviewComment';
+import StyledOcticon from './StyledOcticon';
 import TrustedRenderedMarkdown from './TrustedRenderedMarkdown';
 import {
   gitHubOrgAndRepoAtom,
@@ -37,7 +38,7 @@ import {
   GitMergeIcon,
   GitPullRequestClosedIcon,
 } from '@primer/octicons-react';
-import {Box, StyledOcticon, Text} from '@primer/react';
+import {Box, Text} from '@primer/react';
 import {useAtomValue} from 'jotai';
 import React, {Suspense} from 'react';
 import {notEmpty} from 'shared/utils';

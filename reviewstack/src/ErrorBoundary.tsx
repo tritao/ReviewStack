@@ -5,11 +5,12 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import StyledOcticon from './StyledOcticon';
 import UnauthorizedErrorHandler from './UnauthorizedErrorHandler';
 import UnauthorizedError from './github/UnauthorizedError';
 import StackMetadataError from './stackErrors';
 import {AlertIcon} from '@primer/octicons-react';
-import {Text, Flash, StyledOcticon, Box} from '@primer/react';
+import {Text, Flash, Box} from '@primer/react';
 import {Component} from 'react';
 
 function ErrorNotice({title, error}: {title: React.ReactNode; error: Error}) {

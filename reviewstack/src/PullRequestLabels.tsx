@@ -104,7 +104,7 @@ export default function PullRequestLabels(): React.ReactElement {
   ) : (
     <ActionMenu>
       <ActionMenu.Anchor>
-        <Button trailingIcon={GearIcon}>Labels</Button>
+        <Button trailingVisual={GearIcon}>Labels</Button>
       </ActionMenu.Anchor>
       <ActionMenu.Overlay width="medium">
         <RepoLabelsInput existingLabelIDs={existingLabelIDs} onSelect={updateLabels} />

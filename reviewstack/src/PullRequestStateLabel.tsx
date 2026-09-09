@@ -13,6 +13,13 @@ import {StateLabel} from '@primer/react';
 
 type Status = 'pullClosed' | 'pullMerged' | 'pullOpened';
 
+const PullRequestLabel = StateLabel as unknown as React.ComponentType<{
+  status: Status;
+  variant: 'small' | 'normal';
+  sx: {backgroundColor?: string; whiteSpace: string};
+  children: React.ReactNode;
+}>;
+
 export default function PullRequestStateLabel({
   reviewDecision,
   state,
@@ -24,12 +31,12 @@ export default function PullRequestStateLabel({
 }) {
   const {status, label, color} = statusAndLabel(state, reviewDecision);
   return (
-    <StateLabel
+    <PullRequestLabel
       status={status}
       variant={variant}
       sx={{backgroundColor: color, whiteSpace: 'nowrap'}}>
       {label}
-    </StateLabel>
+    </PullRequestLabel>
   );
 }
 

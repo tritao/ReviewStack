@@ -7,6 +7,7 @@
 
 import type {CheckStatusState} from './generated/graphql';
 
+import StyledOcticon from './StyledOcticon';
 import {CheckConclusionState} from './generated/graphql';
 import {gitHubPullRequestCheckRunsAtom} from './jotai';
 import {
@@ -20,7 +21,7 @@ import {
   StopIcon,
   XCircleIcon,
 } from '@primer/octicons-react';
-import {Box, Details, Link, StyledOcticon, Text, useDetails} from '@primer/react';
+import {Box, Details, Link, Text, useDetails} from '@primer/react';
 import {useAtomValue} from 'jotai';
 import {useMemo} from 'react';
 
