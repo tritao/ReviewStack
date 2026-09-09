@@ -129,10 +129,10 @@ yarn playwright install chromium
 yarn test:e2e
 ```
 
-The browser smoke test verifies the login and OAuth callback routes. Set
-`REVIEWSTACK_E2E_GITHUB_TOKEN` to a dedicated read-only token for this repository
-to additionally exercise the permanent fixture PR's Layer and Commit modes; CI
-skips only that authenticated case when the secret is absent.
+The browser smoke test verifies the login and OAuth callback routes. In CI it
+uses the workflow's short-lived, read-only `GITHUB_TOKEN` to exercise the
+permanent fixture PR's Layer and Commit modes. For a local authenticated run,
+set `REVIEWSTACK_E2E_GITHUB_TOKEN` to a token that can read this repository.
 
 The workspace contains:
 
