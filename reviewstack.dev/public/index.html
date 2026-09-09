@@ -214,6 +214,10 @@
                         element: React.createElement(LandingPage),
                       }),
                       React.createElement(ReactRouterDOM.Route, {
+                        path: '/auth/callback',
+                        element: React.createElement(LandingPage),
+                      }),
+                      React.createElement(ReactRouterDOM.Route, {
                         path: '/:org/:repo',
                         element: React.createElement(ProjectPageEntrypoint),
                       }),

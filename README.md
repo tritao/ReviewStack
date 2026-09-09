@@ -33,7 +33,8 @@ fork retains the upstream MIT license and the original source headers.
 - Node.js 20 or newer
 - Corepack/Yarn 1
 - A modern browser with SharedWorker and IndexedDB support
-- A GitHub personal access token, or a token from `gh auth token`
+- A GitHub login on the hosted app, or a personal access token for local and
+  GitHub Enterprise use
 
 ## Run locally
 
@@ -62,6 +63,31 @@ npx serve -s reviewstack.dev/build
 ReviewStack has no application server. GitHub data and the token are stored in
 the browser for the serving origin. Use **Logout** before reusing that origin
 for an unrelated application.
+
+## GitHub OAuth login
+
+The hosted app can show a **Sign in with GitHub** button backed by the stateless
+Cloudflare Worker in `oauth-worker/`. The browser uses OAuth authorization-code
+flow with PKCE and validates `state`; the worker performs only the token exchange
+so the GitHub client secret is never included in the Pages bundle. Tokens remain
+in the browser and are not stored by the worker.
+
+One-time deployment setup:
+
+1. Register a GitHub OAuth App with homepage
+   `https://tritao.github.io/ReviewStack/` and callback URL
+   `https://tritao.github.io/ReviewStack/auth/callback`.
+2. From `oauth-worker/`, authenticate Wrangler and set
+   `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` with
+   `npx wrangler secret put NAME`, then run `npx wrangler deploy`.
+3. Add repository Actions variables `GITHUB_OAUTH_CLIENT_ID` and
+   `GITHUB_OAUTH_TOKEN_ENDPOINT` (the deployed Worker's `/token` URL), then
+   rebuild Pages. For CI worker deployment, also add the
+   `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets and run
+   the **Deploy OAuth worker** workflow manually.
+
+Only the `public_repo` OAuth scope is requested. Manual token login remains
+available for private repositories and GitHub Enterprise.
 
 ## Devstack metadata
 

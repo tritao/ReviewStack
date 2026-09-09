@@ -1,0 +1,5 @@
+{
+  "name": "reviewstack-oauth-worker",
+  "private": true,
+  "type": "module"
+}

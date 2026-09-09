@@ -120,4 +120,15 @@ module.exports = tseslint.config(
       'no-async-promise-executor': 'warn',
     },
   },
+  {
+    files: ['oauth-worker/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.node,
+        ...globals.worker,
+      },
+    },
+  },
 );

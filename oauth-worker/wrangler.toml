@@ -1,0 +1,11 @@
+name = "reviewstack-oauth"
+main = "src/index.js"
+compatibility_date = "2026-09-09"
+
+[vars]
+APP_ORIGIN = "https://tritao.github.io"
+CALLBACK_URL = "https://tritao.github.io/ReviewStack/auth/callback"
+
+# Configure these before deploying:
+#   npx wrangler secret put GITHUB_CLIENT_ID
+#   npx wrangler secret put GITHUB_CLIENT_SECRET

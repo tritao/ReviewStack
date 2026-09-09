@@ -10,8 +10,9 @@ import type {CustomLoginDialogProps} from 'reviewstack/src/LoginDialog';
 
 import './DefaultLoginDialog.css';
 
-import {Box, Flash, Link, Text} from '@primer/react';
-import {useCallback, useState} from 'react';
+import {beginGitHubOAuth, finishGitHubOAuth, getOAuthConfig, hasOAuthCallback} from './GitHubOAuth';
+import {Box, Button, Flash, Link, Text} from '@primer/react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 export default function LoginDialog({
   setTokenAndHostname,
@@ -19,6 +20,39 @@ export default function LoginDialog({
 }: CustomLoginDialogProps): React.ReactElement | null {
   const [token, setToken] = useState('');
   const [hostname, setHostname] = useState('github.com');
+  const [oauthError, setOAuthError] = useState<string | null>(null);
+  const [isOAuthBusy, setOAuthBusy] = useState(false);
+  const processedCallback = useRef(false);
+  const oauthConfig = getOAuthConfig();
+
+  useEffect(() => {
+    if (oauthConfig == null || !hasOAuthCallback() || processedCallback.current) {
+      return;
+    }
+    processedCallback.current = true;
+    setOAuthBusy(true);
+    finishGitHubOAuth(oauthConfig)
+      .then(({token: oauthToken, returnTo}) => {
+        window.history.replaceState(null, '', returnTo);
+        setTokenAndHostname(oauthToken, 'github.com');
+      })
+      .catch(error => {
+        setOAuthError(error instanceof Error ? error.message : 'GitHub login failed.');
+      })
+      .finally(() => setOAuthBusy(false));
+  }, [oauthConfig, setTokenAndHostname]);
+
+  const onOAuthClick = useCallback(() => {
+    if (oauthConfig == null) {
+      return;
+    }
+    setOAuthError(null);
+    setOAuthBusy(true);
+    beginGitHubOAuth(oauthConfig).catch(error => {
+      setOAuthBusy(false);
+      setOAuthError(error instanceof Error ? error.message : 'Could not start GitHub login.');
+    });
+  }, [oauthConfig]);
 
   const onChangeToken = useCallback(
     (e: ChangeEvent) => setToken((e.target as HTMLInputElement).value),
@@ -56,6 +90,26 @@ export default function LoginDialog({
                 </Flash>
               </Box>
             ) : null}
+            {oauthError != null ? (
+              <Box pb={2}>
+                <Flash variant="danger">
+                  <Text>{oauthError}</Text>
+                </Flash>
+              </Box>
+            ) : null}
+            {oauthConfig != null ? (
+              <Box className="LoginDialog-oauth" pb={3}>
+                <Text as="p">Sign in through GitHub to review public repositories.</Text>
+                <Button variant="primary" onClick={onOAuthClick} disabled={isOAuthBusy}>
+                  {isOAuthBusy ? 'Signing in…' : 'Sign in with GitHub'}
+                </Button>
+              </Box>
+            ) : null}
+            <Box className="LoginDialog-divider" pb={2}>
+              <Text fontWeight="bold">
+                {oauthConfig == null ? 'Sign in with a token' : 'Or sign in manually'}
+              </Text>
+            </Box>
             <Box pb={2}>
               <Text>
                 This tool requires an authentication token so it can read and write data from

@@ -18,3 +18,11 @@
   top: 10px;
   width: 600px;
 }
+
+.LoginDialog-oauth {
+  border-bottom: 1px solid var(--borderColor-default, #d0d7de);
+}
+
+.LoginDialog-divider {
+  padding-top: 8px;
+}
