@@ -7,12 +7,17 @@
 
 import type {TextMateGrammar} from 'shared/textmate-lib/types';
 
+import publicAssetURL from '../publicAssetURL';
+
 export default async function fetchGrammar(
   moduleName: string,
   type: 'json' | 'plist',
 ): Promise<TextMateGrammar> {
-  const uri = `/generated/textmate/${moduleName}.${type}`;
+  const uri = publicAssetURL(`/generated/textmate/${moduleName}.${type}`);
   const response = await fetch(uri);
+  if (!response.ok) {
+    throw new Error(`Could not load TextMate grammar ${uri}: HTTP ${response.status}`);
+  }
   const grammar = await response.text();
   return {type, grammar};
 }

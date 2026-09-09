@@ -9,6 +9,7 @@ import type {Grammar} from 'shared/textmate-lib/types';
 import type {IRawTheme} from 'vscode-textmate';
 
 import fetchGrammar from './fetchGrammar';
+import publicAssetURL from '../publicAssetURL';
 import GrammarStore from 'shared/textmate-lib/GrammarStore';
 import createTextMateRegistry from 'shared/textmate-lib/createTextMateRegistry';
 import {loadWASM} from 'vscode-oniguruma';
@@ -17,7 +18,7 @@ import {loadWASM} from 'vscode-oniguruma';
  * The site that hosts the ReviewStack UI must make onig.wasm available on
  * the host at this path.
  */
-const URL_TO_ONIG_WASM = '/generated/textmate/onig.wasm';
+const URL_TO_ONIG_WASM = publicAssetURL('/generated/textmate/onig.wasm');
 
 export default async function createGrammarStore(
   theme: IRawTheme,
@@ -41,6 +42,9 @@ function ensureOnigurumaIsLoaded(): Promise<void> {
 async function loadOniguruma(): Promise<void> {
   const onigurumaWASMRequest = fetch(URL_TO_ONIG_WASM);
   const response = await onigurumaWASMRequest;
+  if (!response.ok) {
+    throw new Error(`Could not load Oniguruma WASM ${URL_TO_ONIG_WASM}: HTTP ${response.status}`);
+  }
 
   const contentType = response.headers.get('content-type');
   const useStreamingParser = contentType === 'application/wasm';
