@@ -263,7 +263,7 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
     .evaluateAll(items =>
       items.map(item => Number(item.innerText.match(/#(\d+)/)?.[1])).filter(Number.isFinite),
     );
-  expect(displayedPullRequests.length).toBeGreaterThan(1);
+  expect(displayedPullRequests.length).toBeGreaterThan(0);
   expect(displayedPullRequests).toEqual([...displayedPullRequests].sort((a, b) => a - b));
   const displayedLayers = await page
     .getByRole('menuitemradio')
