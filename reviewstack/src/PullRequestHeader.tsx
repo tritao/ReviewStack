@@ -58,15 +58,10 @@ export default function PullRequestHeader(): React.ReactElement | null {
         <PullRequestStack />
         <PullRequestChecksSummary />
         {/*
-          Our goal here is to minimize re-rendering when the user selects a
-          different value from <PullRequestStack>, so we apply <Suspense> in a
-          very narrow context.
-
-          Ideally, we would update <PullRequestVersions> so it never needs a
-          <Suspend>, leveraging useRecoilValueLoadable() as we did in
-          <PullRequestStack> because Recoil wakes all suspended components
-          whenever any async selector is resolved, so every use of <Suspense>
-          runs the risk of a hard-to-debug performance issue.
+          Keep the version selector's initial load isolated from the rest of
+          the action bar. Commit navigation within <PullRequestVersions> uses
+          loadable state for its diff, so these controls remain mounted while
+          the newly selected commit is fetched.
           */}
         <Suspense fallback={null}>
           <PullRequestVersions />

@@ -46,8 +46,21 @@
   cursor: pointer;
 }
 
+.commit-review-rail-item-main:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
 .commit-review-rail-item:hover {
   background: var(--list-hover-background);
+}
+
+.commit-review-rail-item-automated {
+  color: var(--fgColor-muted, #656d76);
+}
+
+.commit-review-rail-item-automated:hover {
+  background: transparent;
 }
 
 .commit-review-rail-item-current {

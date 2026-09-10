@@ -3,6 +3,7 @@ import './CommitReviewRail.css';
 import type {VersionCommit} from './github/types';
 
 import {dispatchCommand} from './KeyboardShortcuts';
+import {isAutomatedCommit, isReviewableCommit} from './commitReview';
 import {CheckConclusionState, CheckStatusState, PullRequestReviewEvent} from './generated/graphql';
 import {
   gitHubPullRequestCheckRunsAtom,
@@ -38,8 +39,12 @@ export default function CommitReviewRail(): React.ReactElement {
   const viewerDidAuthor = useAtomValue(gitHubPullRequestViewerDidAuthorAtom);
   const [showMerges, setShowMerges] = useState(false);
   const selected = target.type === 'commit' ? target.commitID : null;
-  const reviewableCommits = commits.filter(commit => commit.parents.length <= 1);
-  const visibleCommits = showMerges ? commits : reviewableCommits;
+  const selectedCommit = commits.find(commit => commit.commit === selected);
+  const selectedAutomated = selectedCommit != null && isAutomatedCommit(selectedCommit);
+  const nonMergeCommits = commits.filter(commit => commit.parents.length <= 1);
+  const reviewableCommits = commits.filter(isReviewableCommit);
+  const automatedCommits = commits.filter(isAutomatedCommit);
+  const visibleCommits = showMerges ? commits : nonMergeCommits;
   const reviewedCount = reviewableCommits.filter(commit =>
     isReviewProgressComplete('commit', commit.commit),
   ).length;
@@ -72,11 +77,17 @@ export default function CommitReviewRail(): React.ReactElement {
       <Text color="fg.muted">
         {reviewedCount} of {reviewableCommits.length} reviewed
       </Text>
-      {commits.length !== reviewableCommits.length && (
+      {commits.length !== nonMergeCommits.length && (
         <Box as="label" display="flex" alignItems="center" gridGap={1} marginTop={2}>
           <Checkbox checked={showMerges} onChange={() => setShowMerges(value => !value)} />
-          <Text fontSize={0}>Show {commits.length - reviewableCommits.length} merge commits</Text>
+          <Text fontSize={0}>Show {commits.length - nonMergeCommits.length} merge commits</Text>
         </Box>
+      )}
+      {automatedCommits.length > 0 && (
+        <Flash variant="default" sx={{mt: 2}}>
+          {automatedCommits.length} automated commit
+          {automatedCommits.length === 1 ? '' : 's'} deactivated from review.
+        </Flash>
       )}
       {rewrittenTitles.length > 0 && (
         <Flash variant="warning" sx={{mt: 2}}>
@@ -102,26 +113,28 @@ export default function CommitReviewRail(): React.ReactElement {
       {selected != null && (
         <Box className="commit-review-actions">
           <Text display="block" fontSize={0} fontWeight="bold" mb={1}>
-            Submit review from this commit
+            {selectedAutomated ? 'Automated commit skipped' : 'Submit review from this commit'}
           </Text>
-          <Box display="flex" flexWrap="wrap" gridGap={1}>
-            <Button size="small" onClick={() => beginReview(PullRequestReviewEvent.Comment)}>
-              Comment
-            </Button>
-            {!viewerDidAuthor && (
-              <>
-                <Button size="small" onClick={() => beginReview(PullRequestReviewEvent.Approve)}>
-                  Approve
-                </Button>
-                <Button
-                  size="small"
-                  variant="danger"
-                  onClick={() => beginReview(PullRequestReviewEvent.RequestChanges)}>
-                  Request changes
-                </Button>
-              </>
-            )}
-          </Box>
+          {!selectedAutomated && (
+            <Box display="flex" flexWrap="wrap" gridGap={1}>
+              <Button size="small" onClick={() => beginReview(PullRequestReviewEvent.Comment)}>
+                Comment
+              </Button>
+              {!viewerDidAuthor && (
+                <>
+                  <Button size="small" onClick={() => beginReview(PullRequestReviewEvent.Approve)}>
+                    Approve
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="danger"
+                    onClick={() => beginReview(PullRequestReviewEvent.RequestChanges)}>
+                    Request changes
+                  </Button>
+                </>
+              )}
+            </Box>
+          )}
         </Box>
       )}
       {reviewedCount === reviewableCommits.length && reviewableCommits.length > 0 ? (
@@ -130,6 +143,7 @@ export default function CommitReviewRail(): React.ReactElement {
           unresolvedThreads={unresolvedThreads}
           incompleteChecks={incompleteChecks}
           rewrittenCommits={rewrittenTitles.length}
+          automatedCommits={automatedCommits.length}
         />
       ) : nextUnreviewed != null ? (
         <Button block onClick={() => select(nextUnreviewed.commit)}>
@@ -140,6 +154,9 @@ export default function CommitReviewRail(): React.ReactElement {
   );
 
   function beginReview(event: PullRequestReviewEvent) {
+    if (selectedAutomated) {
+      return;
+    }
     setReviewSubmission({event, commitID: selected});
     dispatchCommand('ToggleSidebar');
   }
@@ -150,11 +167,13 @@ function ReviewCompletionSummary({
   unresolvedThreads,
   incompleteChecks,
   rewrittenCommits,
+  automatedCommits,
 }: {
   unviewedFiles: number;
   unresolvedThreads: number;
   incompleteChecks: number;
   rewrittenCommits: number;
+  automatedCommits: number;
 }) {
   const ready = unviewedFiles + unresolvedThreads + incompleteChecks + rewrittenCommits === 0;
   return (
@@ -174,6 +193,11 @@ function ReviewCompletionSummary({
       <Text as="div" fontSize={0}>
         {rewrittenCommits} rewritten commits
       </Text>
+      {automatedCommits > 0 && (
+        <Text as="div" fontSize={0}>
+          {automatedCommits} automated commit{automatedCommits === 1 ? '' : 's'} skipped
+        </Text>
+      )}
       <Button size="small" sx={{mt: 2}} onClick={() => dispatchCommand('ToggleSidebar')}>
         Open review submission
       </Button>
@@ -195,18 +219,28 @@ function CommitRailItem({
   onSelect: () => void;
 }) {
   const [reviewed] = useReviewProgress('commit', commit.commit);
+  const automated = isAutomatedCommit(commit);
   const fileProgress = getCommitFileProgress(commit.commit);
   const stats = getCommitStats(commit.commit);
   const unresolvedPaths = [
     ...new Set(unresolvedThreads.map(thread => thread.comments[0]?.path)),
   ].filter((path): path is string => path != null);
   return (
-    <div className={`commit-review-rail-item${current ? ' commit-review-rail-item-current' : ''}`}>
+    <div
+      className={`commit-review-rail-item${current ? ' commit-review-rail-item-current' : ''}${
+        automated ? ' commit-review-rail-item-automated' : ''
+      }`}>
       <button
         className="commit-review-rail-item-main"
         onClick={onSelect}
+        disabled={automated}
+        title={automated ? 'Automated commit deactivated from review' : undefined}
         aria-current={current ? 'step' : undefined}>
-        {reviewed ? <CheckCircleFillIcon fill="var(--fgColor-open, #1a7f37)" /> : <CircleIcon />}
+        {!automated && reviewed ? (
+          <CheckCircleFillIcon fill="var(--fgColor-open, #1a7f37)" />
+        ) : (
+          <CircleIcon />
+        )}
         <span className="commit-review-rail-content">
           <span className="commit-review-rail-heading">
             <Text fontWeight={current ? 'bold' : 'normal'}>{index + 1}.</Text>
@@ -216,6 +250,7 @@ function CommitRailItem({
             {shortOid(commit.commit)} · {new Date(commit.committedDate).toLocaleDateString()}
             {commit.author != null ? ` · ${commit.author}` : ''}
             {commit.parents.length > 1 ? ' · merge' : ''}
+            {automated ? ' · automated' : ''}
           </Text>
           {(fileProgress != null || stats != null) && (
             <Text as="div" color="fg.muted" fontSize={0}>

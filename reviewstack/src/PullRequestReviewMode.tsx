@@ -5,7 +5,10 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import type {VersionCommit} from './github/types';
+
 import {useCommand} from './KeyboardShortcuts';
+import {isAutomatedCommit, isReviewableCommit} from './commitReview';
 import {
   gitHubPullRequestComparableVersionsAtom,
   gitHubPullRequestReviewTargetAtom,
@@ -23,7 +26,13 @@ import {updateReviewURL} from './reviewURL';
 import {shortOid} from './utils';
 import {ActionList, ActionMenu, Button, ButtonGroup} from '@primer/react';
 import {useAtom, useAtomValue, useSetAtom} from 'jotai';
+import {loadable} from 'jotai/utils';
 import {useEffect, useState} from 'react';
+
+// Keep the action bar mounted while the selected commit's diff is fetched.
+// Reading the promise atom directly would suspend PullRequestVersions through
+// PullRequestHeader's fallback boundary.
+const loadableVersionDiffAtom = loadable(gitHubPullRequestVersionDiffAtom);
 
 export default function PullRequestReviewMode(): React.ReactElement {
   const commits = useAtomValue(gitHubPullRequestSelectedVersionCommitsAtom);
@@ -31,11 +40,15 @@ export default function PullRequestReviewMode(): React.ReactElement {
   const selectedVersionIndex = useAtomValue(gitHubPullRequestSelectedVersionIndexAtom);
   const [target, setTarget] = useAtom(gitHubPullRequestReviewTargetAtom);
   const setComparableVersions = useSetAtom(gitHubPullRequestComparableVersionsAtom);
-  const diff = useAtomValue(gitHubPullRequestVersionDiffAtom);
+  const diffLoadable = useAtomValue(loadableVersionDiffAtom);
+  const diff = diffLoadable.state === 'hasData' ? diffLoadable.data : null;
+  const diffReady = diffLoadable.state === 'hasData' && diffLoadable.data != null;
   useReviewProgressVersion();
   const [showUnviewedWarning, setShowUnviewedWarning] = useState(false);
   const selectedIndex =
     target.type === 'commit' ? commits.findIndex(commit => commit.commit === target.commitID) : -1;
+  const selectedCommit = commits[selectedIndex];
+  const reviewableCommitCount = commits.filter(isReviewableCommit).length;
 
   useEffect(() => {
     if (target.type === 'commit' && selectedIndex === -1) {
@@ -53,17 +66,18 @@ export default function PullRequestReviewMode(): React.ReactElement {
   };
   const selectCommit = (index: number) => {
     const commit = commits[index];
-    if (commit != null) {
+    if (commit != null && !isAutomatedCommit(commit)) {
       setTarget({type: 'commit', commitID: commit.commit});
       updateReviewURL({mode: 'commit', commitID: commit.commit});
     }
   };
   const firstUnreviewedIndex = commits.findIndex(
-    commit => commit.parents.length <= 1 && !isReviewProgressComplete('commit', commit.commit),
+    commit => isReviewableCommit(commit) && !isReviewProgressComplete('commit', commit.commit),
   );
+  const firstReviewableIndex = commits.findIndex(isReviewableCommit);
   const previousReviewableIndex = findPreviousReviewableIndex(commits, selectedIndex);
   const nextReviewableIndex = commits.findIndex(
-    (commit, index) => index > selectedIndex && commit.parents.length <= 1,
+    (commit, index) => index > selectedIndex && isReviewableCommit(commit),
   );
   const changedPaths =
     diff?.diff.map(change => {
@@ -75,7 +89,7 @@ export default function PullRequestReviewMode(): React.ReactElement {
 
   const markReviewedAndContinue = (force = false) => {
     const commit = commits[selectedIndex];
-    if (commit == null) {
+    if (commit == null || isAutomatedCommit(commit) || !diffReady) {
       return;
     }
     if (!force && unviewedFiles.length > 0) {
@@ -86,7 +100,7 @@ export default function PullRequestReviewMode(): React.ReactElement {
     const nextIndex = commits.findIndex(
       (candidate, index) =>
         index > selectedIndex &&
-        candidate.parents.length <= 1 &&
+        isReviewableCommit(candidate) &&
         !isReviewProgressComplete('commit', candidate.commit),
     );
     if (nextIndex !== -1) {
@@ -108,14 +122,14 @@ export default function PullRequestReviewMode(): React.ReactElement {
         <Button
           variant={target.type === 'commit' ? 'primary' : 'default'}
           title="Review one commit from this version at a time"
-          disabled={commits.length === 0}
+          disabled={reviewableCommitCount === 0}
           onClick={() =>
             selectCommit(
-              selectedIndex === -1
-                ? firstUnreviewedIndex === -1
-                  ? 0
-                  : firstUnreviewedIndex
-                : selectedIndex,
+              selectedIndex !== -1 && isReviewableCommit(commits[selectedIndex])
+                ? selectedIndex
+                : firstUnreviewedIndex === -1
+                ? firstReviewableIndex
+                : firstUnreviewedIndex,
             )
           }>
           Commit
@@ -138,9 +152,11 @@ export default function PullRequestReviewMode(): React.ReactElement {
                 {commits.map((commit, index) => (
                   <ActionList.Item
                     key={commit.commit}
+                    disabled={isAutomatedCommit(commit)}
                     selected={index === selectedIndex}
                     onSelect={() => selectCommit(index)}>
                     {index + 1}. {commit.title}
+                    {isAutomatedCommit(commit) ? ' · automated (skipped)' : ''}
                   </ActionList.Item>
                 ))}
               </ActionList>
@@ -152,7 +168,11 @@ export default function PullRequestReviewMode(): React.ReactElement {
             onClick={() => selectCommit(nextReviewableIndex)}>
             Next
           </Button>
-          {showUnviewedWarning ? (
+          {selectedCommit != null && isAutomatedCommit(selectedCommit) ? (
+            <Button disabled title="Automated commit deactivated from review">
+              Automated commit skipped
+            </Button>
+          ) : showUnviewedWarning && diffReady ? (
             <>
               <Button disabled>{unviewedFiles.length} files unviewed</Button>
               <Button variant="danger" onClick={() => markReviewedAndContinue(true)}>
@@ -160,7 +180,17 @@ export default function PullRequestReviewMode(): React.ReactElement {
               </Button>
             </>
           ) : (
-            <Button variant="primary" onClick={() => markReviewedAndContinue()}>
+            <Button
+              variant="primary"
+              disabled={!diffReady}
+              title={
+                diffLoadable.state === 'loading'
+                  ? 'Loading changed files…'
+                  : diffLoadable.state === 'hasError'
+                  ? 'Changed files are unavailable'
+                  : undefined
+              }
+              onClick={() => markReviewedAndContinue()}>
               Reviewed → next
             </Button>
           )}
@@ -171,11 +201,11 @@ export default function PullRequestReviewMode(): React.ReactElement {
 }
 
 function findPreviousReviewableIndex(
-  commits: ReadonlyArray<{parents: string[]}>,
+  commits: ReadonlyArray<VersionCommit>,
   selectedIndex: number,
 ): number {
   for (let index = selectedIndex - 1; index >= 0; index--) {
-    if (commits[index].parents.length <= 1) {
+    if (isReviewableCommit(commits[index])) {
       return index;
     }
   }
