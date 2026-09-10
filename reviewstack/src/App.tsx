@@ -7,19 +7,14 @@
 
 import AppHeader from './AppHeader';
 import CenteredSpinner from './CenteredSpinner';
-import CommitView from './CommitView';
 import {ErrorBoundary} from './ErrorBoundary';
 import GitHubMarkdownStyles from './GitHubMarkdownStyles';
-import GitHubProjectPage from './GitHubProjectPage';
 import {ShortcutCommandContext} from './KeyboardShortcuts';
 import LoginDialog from './LoginDialog';
 import NotificationBanner from './NotificationBanner';
 import PrimerStyles from './PrimerStyles';
-import PullRequestLayout from './PullRequestLayout';
-import PullsView from './PullsView';
 import SplitDiffViewPrimerStyles from './SplitDiffViewPrimerStyles';
 import TextMateStyles from './TextMateStyles';
-import UserHomePage from './UserHomePage';
 import {
   gitHubTokenListenerAtom,
   gitHubTokenPersistenceAtom,
@@ -29,6 +24,12 @@ import {BaseStyles, Box, Text, useTheme} from '@primer/react';
 import {useAtom, useAtomValue} from 'jotai';
 import {loadable} from 'jotai/utils';
 import React, {useEffect, useMemo} from 'react';
+
+const CommitView = React.lazy(() => import('./CommitView'));
+const GitHubProjectPage = React.lazy(() => import('./GitHubProjectPage'));
+const PullRequestLayout = React.lazy(() => import('./PullRequestLayout'));
+const PullsView = React.lazy(() => import('./PullsView'));
+const UserHomePage = React.lazy(() => import('./UserHomePage'));
 
 type Page =
   | {type: 'home'}
@@ -95,7 +96,9 @@ function ContentOrLoginDialog({page}: {page: Page}): React.ReactElement {
         <>
           <AppHeader orgAndRepo={orgAndRepo} />
           <ErrorBoundary>
-            <AppContent page={page} />
+            <React.Suspense fallback={<CenteredSpinner message="Loading page…" />}>
+              <AppContent page={page} />
+            </React.Suspense>
           </ErrorBoundary>
         </>
       ) : (
