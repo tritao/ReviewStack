@@ -9,6 +9,7 @@ import AppHeader from './AppHeader';
 import CenteredSpinner from './CenteredSpinner';
 import CommitView from './CommitView';
 import {ErrorBoundary} from './ErrorBoundary';
+import GitHubMarkdownStyles from './GitHubMarkdownStyles';
 import GitHubProjectPage from './GitHubProjectPage';
 import {ShortcutCommandContext} from './KeyboardShortcuts';
 import LoginDialog from './LoginDialog';
@@ -65,6 +66,7 @@ export default function App({page}: {page: Page}): React.ReactElement {
         <ThemeListener />
         <BaseStyles>
           <PrimerStyles />
+          <GitHubMarkdownStyles />
           <SplitDiffViewPrimerStyles />
           <TextMateStyles />
           <Box bg="canvas.default" fontFamily="normal" className="reviewstack">

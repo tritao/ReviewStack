@@ -32,7 +32,15 @@ export default function TrustedRenderedMarkdown({
   inline?: boolean;
   className?: string;
 }): React.ReactElement {
-  const clazz = className != null ? `${className} ${bodyHTMLClassName}` : bodyHTMLClassName;
+  const clazz = Array.from(
+    new Set([
+      ...(className?.split(/\s+/) ?? []),
+      inline ? null : 'markdown-body',
+      bodyHTMLClassName,
+    ]),
+  )
+    .filter((name): name is string => name != null && name !== '')
+    .join(' ');
   // We may want to rewrite URLs to github.com to point to the equivalent URL
   // in our own tool, if it is supported.
   const type = inline ? 'span' : 'div';
