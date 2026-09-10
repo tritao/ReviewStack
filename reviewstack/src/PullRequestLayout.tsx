@@ -38,6 +38,9 @@ export default function PullRequestLayout({
 }): React.ReactElement {
   const [isNarrow, setIsNarrow] = useState(() => window.matchMedia('(max-width: 600px)').matches);
   const reviewTarget = useAtomValue(gitHubPullRequestReviewTargetAtom);
+  const isCommitMode =
+    reviewTarget.type === 'commit' ||
+    new URLSearchParams(window.location.search).get('mode') === 'commit';
   const setOrgAndRepo = useSetAtom(gitHubOrgAndRepoAtom);
   const setPullRequestID = useSetAtom(gitHubPullRequestIDAtom);
 
@@ -60,10 +63,10 @@ export default function PullRequestLayout({
   useLayoutEffect(() => {
     setDrawerState(state => ({
       ...state,
-      left: {...state.left, collapsed: reviewTarget.type !== 'commit'},
-      right: reviewTarget.type === 'commit' ? {...state.right, collapsed: true} : state.right,
+      left: {...state.left, collapsed: !isCommitMode},
+      right: isCommitMode ? {...state.right, collapsed: true} : state.right,
     }));
-  }, [reviewTarget.type, setDrawerState]);
+  }, [isCommitMode, setDrawerState]);
   useCommand('ToggleSidebar', () => {
     setDrawerState(state => ({
       ...state,
@@ -100,7 +103,7 @@ export default function PullRequestLayout({
               </Box>
             </Box>
           </Drawers>
-        ) : reviewTarget.type === 'commit' ? (
+        ) : isCommitMode ? (
           <Drawers
             drawerState={pullRequestDrawerStateAtom}
             errorBoundary={ErrorBoundary}
