@@ -17,11 +17,15 @@ import React from 'react';
 
 type Props = {
   isSelected: boolean;
+  layer: number;
+  totalLayers: number;
 } & StackPullRequestFragment;
 
 // eslint-disable-next-line prefer-arrow-callback
 export default React.memo(function PullRequestStackItem({
   isSelected,
+  layer,
+  totalLayers,
   comments,
   number,
   reviewDecision,
@@ -37,8 +41,14 @@ export default React.memo(function PullRequestStackItem({
       selected={isSelected}
       sx={{display: 'flex', alignItems: 'center'}}>
       <Box fontSize={0}>
+        <Box display="flex" alignItems="center" gridGap={1}>
+          <Text fontWeight="bold">Layer {layer}</Text>
+          {layer === 1 && <Text color="fg.muted">· Base</Text>}
+          {layer === totalLayers && <Text color="fg.muted">· Top</Text>}
+          {isSelected && <Text color="accent.fg">· Current</Text>}
+        </Box>
         <Box overflow="hidden" sx={{textOverflow: 'ellipsis'}}>
-          <Text fontWeight="bold" fontSize={1} whiteSpace="nowrap">
+          <Text fontSize={1} whiteSpace="nowrap">
             {title}
           </Text>
         </Box>

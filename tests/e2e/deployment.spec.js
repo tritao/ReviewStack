@@ -144,7 +144,7 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   await page.getByRole('button', {name: 'Reviewed → next'}).click();
   await expect.poll(() => page.url()).not.toBe(firstCommitURL);
   await expect(page.getByText('1 of 2 reviewed')).toBeVisible();
-  const stackSelector = page.getByRole('button', {name: /^Pull Request \d+ of \d+$/});
+  const stackSelector = page.getByRole('button', {name: /^Stack · Layer \d+ of \d+$/});
   await expect(stackSelector).toBeVisible();
   await expect
     .poll(() =>
@@ -172,6 +172,13 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
     );
   expect(displayedPullRequests.length).toBeGreaterThan(1);
   expect(displayedPullRequests).toEqual([...displayedPullRequests].sort((a, b) => a - b));
+  const displayedLayers = await page
+    .getByRole('menuitemradio')
+    .evaluateAll(items => items.map(item => Number(item.innerText.match(/Layer (\d+)/)?.[1])));
+  expect(displayedLayers).toEqual(displayedLayers.map((_, index) => index + 1));
+  await expect(page.getByRole('menuitemradio').filter({hasText: '· Base'})).toHaveCount(1);
+  await expect(page.getByRole('menuitemradio').filter({hasText: '· Top'})).toHaveCount(1);
+  await expect(page.getByRole('menuitemradio').filter({hasText: '· Current'})).toHaveCount(1);
   await page.keyboard.press('Escape');
   const reviewRail = page.locator('.drawer-right .drawer-label');
   await expect(reviewRail).toBeVisible();

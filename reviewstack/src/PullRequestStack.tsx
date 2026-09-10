@@ -11,8 +11,8 @@ import {useCommand} from './KeyboardShortcuts';
 import PullRequestStackItem from './PullRequestStackItem';
 import {gitHubPullRequestIDAtom, stackedPullRequestFragmentsAtom} from './jotai';
 import useNavigateToPullRequest from './useNavigateToPullRequest';
-import {ArrowDownIcon, ArrowUpIcon} from '@primer/octicons-react';
-import {ActionList, ActionMenu, ButtonGroup, IconButton} from '@primer/react';
+import {ArrowDownIcon, ArrowUpIcon, StackIcon} from '@primer/octicons-react';
+import {ActionList, ActionMenu, Box, ButtonGroup, IconButton, Text} from '@primer/react';
 import {useAtomValue} from 'jotai';
 import {loadable} from 'jotai/utils';
 import {useCallback, useEffect, useState} from 'react';
@@ -108,15 +108,22 @@ export default function PullRequestStack(): React.ReactElement | null {
   return (
     <ButtonGroup>
       <ActionMenu>
-        <ActionMenu.Button>
-          Pull Request {total - index} of {total}
+        <ActionMenu.Button leadingVisual={StackIcon}>
+          Stack · Layer {total - index} of {total}
         </ActionMenu.Button>
         <ActionMenu.Overlay width="xxlarge">
+          <Box paddingX={3} paddingTop={2}>
+            <Text color="fg.muted" fontSize={0} fontWeight="bold">
+              {total}-layer stack
+            </Text>
+          </Box>
           <ActionList selectionVariant="single">
-            {[...stack].reverse().map(pullRequest => (
+            {[...stack].reverse().map((pullRequest, layerIndex) => (
               <PullRequestStackItem
                 key={pullRequest.number}
                 isSelected={pullRequest.number === pullRequestNumber}
+                layer={layerIndex + 1}
+                totalLayers={total}
                 {...pullRequest}
               />
             ))}
@@ -124,13 +131,15 @@ export default function PullRequestStack(): React.ReactElement | null {
         </ActionMenu.Overlay>
       </ActionMenu>
       <IconButton
-        aria-label="Previous pull request"
+        aria-label="Previous layer"
+        title="Previous layer"
         disabled={!hasPrev}
         icon={ArrowDownIcon}
         onClick={() => onNavigate(index + 1)}
       />
       <IconButton
-        aria-label="Next pull request"
+        aria-label="Next layer"
+        title="Next layer"
         disabled={!hasNext}
         icon={ArrowUpIcon}
         onClick={() => onNavigate(index - 1)}
