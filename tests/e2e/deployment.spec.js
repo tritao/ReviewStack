@@ -157,7 +157,11 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   }
   await reviewComposer.fill(reviewDraft);
   await page.reload();
+  const reviewDrawerLabel = page.locator('.drawer-right .drawer-label');
+  await expect(reviewDrawerLabel).toBeVisible();
+  await reviewDrawerLabel.click();
   await expect(page.getByPlaceholder('Write a comment...').last()).toHaveValue(reviewDraft);
+  await reviewDrawerLabel.click();
   const firstCommitURL = page.url();
   await page.locator('.reviewstack-pr-workspace').evaluate(element => {
     window.__reviewstackCommitSwitchWidths = [element.getBoundingClientRect().width];
