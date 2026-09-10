@@ -27,8 +27,6 @@ import {Drawers} from 'shared/Drawers';
 
 import './PullRequestLayout.css';
 
-const COMMENT_INPUT_HEIGHT = 125;
-
 const drawerStateAtom = atom<AllDrawersState>({
   right: {size: 500, collapsed: false},
   left: {size: 300, collapsed: true},
@@ -164,10 +162,10 @@ function ReviewDrawerLabel() {
 function TimelineDrawer() {
   return (
     <Box className="reviewstack-pr-timeline" display="flex" flexDirection="column">
-      <Box height={`calc(100% - ${COMMENT_INPUT_HEIGHT}px)`} overflow="auto">
+      <Box flex="1 1 auto" minHeight={0} overflow="auto">
         <PullRequestTimeline />
       </Box>
-      <Box display="flex" height={COMMENT_INPUT_HEIGHT}>
+      <Box display="flex" flex="0 0 auto">
         <PullRequestTimelineCommentInput />
       </Box>
     </Box>

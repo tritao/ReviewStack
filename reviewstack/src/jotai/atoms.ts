@@ -47,7 +47,12 @@ import type {SaplingPullRequestBody} from '../saplingStack';
 import {parseDevstackStackBodyResult} from '../devstackStack';
 import {diffStatsAtom, lineToPositionAtom} from '../diffServiceClient';
 import {findExactRenames} from '../exactRenames';
-import {DiffSide, UsernameQuery, UserHomePageQuery} from '../generated/graphql';
+import {
+  DiffSide,
+  PullRequestReviewEvent,
+  UsernameQuery,
+  UserHomePageQuery,
+} from '../generated/graphql';
 import {pullRequestNumbersFromBody} from '../ghstackUtils';
 import CachingGitHubClient, {openDatabase} from '../github/CachingGitHubClient';
 import GraphQLGitHubClient from '../github/GraphQLGitHubClient';
@@ -87,6 +92,16 @@ export const primerColorModeAtom = atomWithStorage<SupportedPrimerColorMode>(
   LOCAL_STORAGE_KEY,
   'day',
 );
+
+export type ReviewSubmissionRequest = {
+  event: PullRequestReviewEvent;
+  commitID: GitObjectID | null;
+};
+
+export const gitHubPullRequestReviewSubmissionAtom = atom<ReviewSubmissionRequest>({
+  event: PullRequestReviewEvent.Comment,
+  commitID: null,
+});
 
 // =============================================================================
 // GitHub Credentials (migrated from gitHubCredentials.ts)

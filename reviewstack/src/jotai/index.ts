@@ -13,6 +13,7 @@
 
 export {
   primerColorModeAtom,
+  gitHubPullRequestReviewSubmissionAtom,
   gitHubTokenStateAtom,
   gitHubTokenListenerAtom,
   gitHubTokenPersistenceAtom,
@@ -93,4 +94,5 @@ export type {
   FileContentsDelta,
   NotificationMessage,
   StackedPullRequest,
+  ReviewSubmissionRequest,
 } from './atoms';

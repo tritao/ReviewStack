@@ -13,13 +13,20 @@
 }
 
 .commit-review-rail-item {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: inherit;
+  background: transparent;
+}
+
+.commit-review-rail-item-main {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);
   gap: 8px;
   width: 100%;
   padding: 8px;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  border: 0;
   color: inherit;
   text-align: left;
   background: transparent;
@@ -39,4 +46,29 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.commit-review-actions {
+  margin-block: 12px;
+  padding-block: 12px;
+  border-block: 1px solid var(--borderColor-default, #d0d7de);
+}
+
+.commit-review-unresolved-files {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px 8px 36px;
+}
+
+.commit-review-unresolved-files button {
+  overflow: hidden;
+  padding: 2px 0;
+  border: 0;
+  color: var(--fgColor-accent, #0969da);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: transparent;
+  cursor: pointer;
 }

@@ -8,16 +8,26 @@
 import PullRequestCommentInput from './PullRequestCommentInput';
 import PullRequestReviewSelector from './PullRequestReviewSelector';
 import {PullRequestReviewEvent} from './generated/graphql';
-import {gitHubClientAtom, gitHubPullRequestAtom, gitHubPullRequestPendingReviewIDAtom} from './jotai';
+import {
+  gitHubClientAtom,
+  gitHubPullRequestAtom,
+  gitHubPullRequestPendingReviewIDAtom,
+  gitHubPullRequestReviewSubmissionAtom,
+  gitHubPullRequestSelectedVersionCommitsAtom,
+} from './jotai';
 import useRefreshPullRequest from './useRefreshPullRequest';
-import {useAtomValue} from 'jotai';
-import {useCallback, useState} from 'react';
+import {shortOid} from './utils';
+import {Box, Text} from '@primer/react';
+import {useAtom, useAtomValue} from 'jotai';
+import {useCallback} from 'react';
 
 export default function PullRequestTimelineCommentInput(): React.ReactElement {
   const pendingReviewID = useAtomValue(gitHubPullRequestPendingReviewIDAtom);
   const refreshPullRequest = useRefreshPullRequest();
   const pullRequest = useAtomValue(gitHubPullRequestAtom);
-  const [event, setEvent] = useState(PullRequestReviewEvent.Comment);
+  const commits = useAtomValue(gitHubPullRequestSelectedVersionCommitsAtom);
+  const [submission, setSubmission] = useAtom(gitHubPullRequestReviewSubmissionAtom);
+  const {commitID: contextCommitID, event} = submission;
 
   // Client is already loaded by the time we're adding a comment
   const client = useAtomValue(gitHubClientAtom);
@@ -52,19 +62,40 @@ export default function PullRequestTimelineCommentInput(): React.ReactElement {
       }
 
       refreshPullRequest();
-      setEvent(PullRequestReviewEvent.Comment);
+      setSubmission({event: PullRequestReviewEvent.Comment, commitID: null});
     },
-    [client, event, pendingReviewID, pullRequest, refreshPullRequest],
+    [client, event, pendingReviewID, pullRequest, refreshPullRequest, setSubmission],
   );
 
+  const contextCommit = commits.find(commit => commit.commit === contextCommitID);
   return (
-    <PullRequestCommentInput
-      addComment={addComment}
-      autoFocus={false}
-      resetInputAfterAddingComment={true}
-      allowEmptyMessage={pendingReviewID != null || event === PullRequestReviewEvent.Approve}
-      label="Submit"
-      actionSelector={<PullRequestReviewSelector event={event} onSelect={setEvent} />}
-    />
+    <Box width="100%">
+      {contextCommit != null && (
+        <Box
+          backgroundColor="canvas.subtle"
+          borderTop="1px solid"
+          borderColor="border.default"
+          px={2}
+          py={1}>
+          <Text fontSize={0} color="fg.muted">
+            Reviewing after {shortOid(contextCommit.commit)} · {contextCommit.title}
+          </Text>
+        </Box>
+      )}
+      <PullRequestCommentInput
+        addComment={addComment}
+        autoFocus={false}
+        resetInputAfterAddingComment={true}
+        allowEmptyMessage={pendingReviewID != null || event === PullRequestReviewEvent.Approve}
+        label="Submit"
+        draftKey={`reviewstack.review-draft.v1:${window.location.pathname}`}
+        actionSelector={
+          <PullRequestReviewSelector
+            event={event}
+            onSelect={nextEvent => setSubmission({...submission, event: nextEvent})}
+          />
+        }
+      />
+    </Box>
   );
 }
