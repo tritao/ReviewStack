@@ -11,19 +11,22 @@ import {createRequestHeaders} from 'shared/github/auth';
 
 export type GitHubNotificationReason = 'assign' | 'mention' | 'review_requested' | 'team_mention';
 
+export type GitHubNotificationSubjectType = 'PullRequest' | 'Issue';
+
 export type GitHubNotification = {
   id: string;
   reason: GitHubNotificationReason;
   updatedAt: string;
   repositoryNameWithOwner: string;
   subjectTitle: string;
-  subjectType: string;
+  subjectType: GitHubNotificationSubjectType;
   subjectUrl: string;
 };
 
-export type NotificationPullRequest = {
+export type NotificationSubject = {
   repositoryNameWithOwner: string;
   number: number;
+  subjectType: GitHubNotificationSubjectType;
 };
 
 const ATTENTION_REASONS = new Set<GitHubNotificationReason>([
@@ -74,22 +77,22 @@ export async function fetchGitHubNotifications(
     .filter(
       (notification): notification is GitHubNotification =>
         notification != null &&
-        notification.subjectType === 'PullRequest' &&
+        (notification.subjectType === 'PullRequest' || notification.subjectType === 'Issue') &&
         ATTENTION_REASONS.has(notification.reason),
     );
 }
 
-export function getNotificationPullRequest(
+export function getNotificationSubject(
   notification: GitHubNotification,
-): NotificationPullRequest | null {
-  if (notification.subjectType !== 'PullRequest') {
-    return null;
-  }
-
+): NotificationSubject | null {
   const match = notification.subjectUrl.match(/\/repos\/[^/]+\/[^/]+\/(?:issues|pulls)\/(\d+)/);
   const number = match == null ? NaN : Number(match[1]);
   return Number.isInteger(number) && number > 0
-    ? {repositoryNameWithOwner: notification.repositoryNameWithOwner, number}
+    ? {
+        repositoryNameWithOwner: notification.repositoryNameWithOwner,
+        number,
+        subjectType: notification.subjectType,
+      }
     : null;
 }
 
@@ -126,7 +129,7 @@ function parseNotification(value: unknown): GitHubNotification | null {
     typeof updatedAt !== 'string' ||
     typeof repository?.full_name !== 'string' ||
     typeof subject?.title !== 'string' ||
-    typeof subject.type !== 'string' ||
+    (subject.type !== 'PullRequest' && subject.type !== 'Issue') ||
     typeof subject.url !== 'string'
   ) {
     return null;

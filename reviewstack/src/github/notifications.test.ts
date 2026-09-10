@@ -1,7 +1,7 @@
 import {
   createRestApiEndpointForHostname,
   fetchGitHubNotifications,
-  getNotificationPullRequest,
+  getNotificationSubject,
 } from './notifications';
 
 afterEach(() => jest.restoreAllMocks());
@@ -13,7 +13,7 @@ test('uses the GitHub and Enterprise REST API endpoints', () => {
   );
 });
 
-test('filters unread notifications to pull-request attention reasons', async () => {
+test('filters unread notifications to pull-request and issue attention reasons', async () => {
   const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(
     new Response(
       JSON.stringify([
@@ -65,13 +65,22 @@ test('filters unread notifications to pull-request attention reasons', async () 
       subjectType: 'PullRequest',
       subjectUrl: 'https://api.github.com/repos/FreeCAD/FreeCAD/pulls/123',
     },
+    {
+      id: 'issue-1',
+      reason: 'mention',
+      updatedAt: '2026-09-10T08:00:00Z',
+      repositoryNameWithOwner: 'FreeCAD/FreeCAD',
+      subjectTitle: 'Issue',
+      subjectType: 'Issue',
+      subjectUrl: 'https://api.github.com/repos/FreeCAD/FreeCAD/issues/125',
+    },
   ]);
   expect(String(fetchMock.mock.calls[0][0])).toBe(
     'https://api.github.com/notifications?all=false&participating=true&per_page=50',
   );
 });
 
-test('extracts a pull request route from a notification', () => {
+test('extracts a subject route from a notification', () => {
   const notification = {
     id: '1',
     reason: 'mention' as const,
@@ -81,9 +90,20 @@ test('extracts a pull request route from a notification', () => {
     subjectType: 'PullRequest',
     subjectUrl: 'https://api.github.com/repos/FreeCAD/FreeCAD/issues/123',
   };
-  expect(getNotificationPullRequest(notification)).toEqual({
+  expect(getNotificationSubject(notification)).toEqual({
     repositoryNameWithOwner: 'FreeCAD/FreeCAD',
     number: 123,
+    subjectType: 'PullRequest',
   });
-  expect(getNotificationPullRequest({...notification, subjectType: 'Issue'})).toBeNull();
+  expect(
+    getNotificationSubject({
+      ...notification,
+      subjectType: 'Issue',
+      subjectUrl: 'https://api.github.com/repos/FreeCAD/FreeCAD/issues/123',
+    }),
+  ).toEqual({
+    repositoryNameWithOwner: 'FreeCAD/FreeCAD',
+    number: 123,
+    subjectType: 'Issue',
+  });
 });

@@ -1734,7 +1734,7 @@ export type GitHubUserHomePageData = {
   repositories: UserHomePageRepositoriesQueryData['viewer']['repositories']['nodes'];
   pullRequests: UserHomePagePullRequestsQueryData['viewer']['pullRequests']['nodes'];
   reviewRequests: UserHomePageReviewRequestsQueryData['search']['nodes'];
-  mentionedPullRequests: UserHomePageMentionsQueryData['search']['nodes'];
+  mentionedItems: UserHomePageMentionsQueryData['search']['nodes'];
   notifications: GitHubNotification[];
   notificationsAvailable: boolean;
 };
@@ -1772,8 +1772,8 @@ export const gitHubUserHomePageDataAtom = atom<Promise<GitHubUserHomePageData | 
         graphQLEndpoint,
       ),
     ]);
-    const mentionsQuery = 'is:open is:pr archived:false mentions:@me';
-    const [mentionedPullRequests, notifications] = await Promise.allSettled([
+    const mentionsQuery = 'is:open archived:false mentions:@me';
+    const [mentionedItems, notifications] = await Promise.allSettled([
       queryGraphQL<UserHomePageMentionsQueryData, UserHomePageMentionsQueryVariables>(
         UserHomePageMentionsQuery,
         {mentionsQuery},
@@ -1798,10 +1798,8 @@ export const gitHubUserHomePageDataAtom = atom<Promise<GitHubUserHomePageData | 
         pullRequests.status === 'fulfilled' ? pullRequests.value.viewer.pullRequests.nodes : [],
       reviewRequests:
         reviewRequests.status === 'fulfilled' ? reviewRequests.value.search.nodes : [],
-      mentionedPullRequests:
-        mentionedPullRequests.status === 'fulfilled'
-          ? mentionedPullRequests.value.search.nodes
-          : [],
+      mentionedItems:
+        mentionedItems.status === 'fulfilled' ? mentionedItems.value.search.nodes : [],
       notifications: notifications.status === 'fulfilled' ? notifications.value : [],
       notificationsAvailable: notifications.status === 'fulfilled',
     };

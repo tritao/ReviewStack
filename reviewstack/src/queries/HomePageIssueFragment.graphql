@@ -1,0 +1,9 @@
+fragment HomePageIssueFragment on Issue {
+  __typename
+  number
+  issueTitleHTML: titleHTML
+  updatedAt
+  repository {
+    nameWithOwner
+  }
+}

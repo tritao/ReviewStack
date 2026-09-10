@@ -58,7 +58,7 @@ function UserHomePageRoot(): React.ReactElement {
       <UserAttentionQueue
         notifications={data?.notifications ?? []}
         notificationsAvailable={data?.notificationsAvailable ?? true}
-        mentionedPullRequests={data?.mentionedPullRequests ?? []}
+        mentionedItems={data?.mentionedItems ?? []}
         excludedKeys={requestedKeys}
       />
       <ContinueReview pullRequests={[...requestedPullRequests, ...ownPullRequests]} />

@@ -2,6 +2,7 @@ query UserHomePageMentionsQuery($mentionsQuery: String!) {
   search(first: 10, query: $mentionsQuery, type: ISSUE) {
     nodes {
       ...HomePagePullRequestFragment
+      ...HomePageIssueFragment
     }
   }
 }

@@ -12,7 +12,7 @@ import './UserHomePage.css';
 
 import Link from './Link';
 import TrustedRenderedMarkdown from './TrustedRenderedMarkdown';
-import {getNotificationPullRequest, notificationReasonLabel} from './github/notifications';
+import {getNotificationSubject, notificationReasonLabel} from './github/notifications';
 import {formatISODate} from './utils';
 import {BellIcon} from '@primer/octicons-react';
 import {Box, Button, Label, Text} from '@primer/react';
@@ -22,6 +22,7 @@ import {notEmpty} from 'shared/utils';
 const HANDLED_STORAGE_KEY = 'reviewstack.handled-attention.v1';
 
 type MentionSearchNode = NonNullable<UserHomePageMentionsQueryData['search']['nodes']>[number];
+type AttentionKind = 'PullRequest' | 'Issue';
 
 type AttentionItem = {
   key: string;
@@ -29,6 +30,7 @@ type AttentionItem = {
   titleHTML: string | null;
   repositoryNameWithOwner: string;
   number: number;
+  kind: AttentionKind;
   updatedAt: string;
   reasons: string[];
   handledKeys: string[];
@@ -37,12 +39,12 @@ type AttentionItem = {
 export default function UserAttentionQueue({
   notifications,
   notificationsAvailable,
-  mentionedPullRequests,
+  mentionedItems,
   excludedKeys,
 }: {
   notifications: GitHubNotification[];
   notificationsAvailable: boolean;
-  mentionedPullRequests: MentionSearchNode[];
+  mentionedItems: MentionSearchNode[];
   excludedKeys: ReadonlySet<string>;
 }): React.ReactElement | null {
   const [handled, setHandled] = useState<Record<string, string>>(readHandledAttention);
@@ -51,10 +53,10 @@ export default function UserAttentionQueue({
       buildAttentionItems(
         notifications,
         notificationsAvailable,
-        mentionedPullRequests,
+        mentionedItems,
         excludedKeys,
       ).filter(item => !isHandled(item, handled)),
-    [excludedKeys, handled, mentionedPullRequests, notifications, notificationsAvailable],
+    [excludedKeys, handled, mentionedItems, notifications, notificationsAvailable],
   );
 
   if (items.length === 0) {
@@ -71,7 +73,7 @@ export default function UserAttentionQueue({
           </Text>
           <Text color="fg.muted">
             {fallback
-              ? 'Notifications are unavailable; showing open PRs that mention you.'
+              ? 'Notifications are unavailable; showing open PRs and issues that mention you.'
               : `${items.length} unread GitHub notification${items.length === 1 ? '' : 's'}`}
           </Text>
         </Box>
@@ -108,7 +110,7 @@ function AttentionRow({
       <BellIcon className="reviewstack-attention-icon" size={24} />
       <Box className="reviewstack-review-main">
         <Box className="reviewstack-review-title">
-          <Link href={`/${item.repositoryNameWithOwner}/pull/${item.number}`}>
+          <Link href={subjectPath(item)}>
             {item.titleHTML == null ? (
               item.title
             ) : (
@@ -120,6 +122,7 @@ function AttentionRow({
           <Text>
             {item.repositoryNameWithOwner} #{item.number}
           </Text>
+          <Label variant="accent">{item.kind === 'Issue' ? 'Issue' : 'Pull request'}</Label>
           {item.reasons.map(reason => (
             <Label key={reason} variant="attention">
               {reason}
@@ -138,28 +141,33 @@ function AttentionRow({
 function buildAttentionItems(
   notifications: GitHubNotification[],
   notificationsAvailable: boolean,
-  mentionedPullRequests: MentionSearchNode[],
+  mentionedItems: MentionSearchNode[],
   excludedKeys: ReadonlySet<string>,
 ): AttentionItem[] {
   if (!notificationsAvailable) {
-    return mentionedPullRequests
-      .map(pullRequest => {
-        if (pullRequest == null || pullRequest.__typename !== 'PullRequest') {
+    return mentionedItems
+      .map(subject => {
+        if (
+          subject == null ||
+          (subject.__typename !== 'PullRequest' && subject.__typename !== 'Issue')
+        ) {
           return null;
         }
-        const key = pullRequestKey(pullRequest.repository.nameWithOwner, pullRequest.number);
+        const key = subjectKey(subject.repository.nameWithOwner, subject.number);
         if (excludedKeys.has(key)) {
           return null;
         }
         return {
           key,
           title: '',
-          titleHTML: pullRequest.titleHTML,
-          repositoryNameWithOwner: pullRequest.repository.nameWithOwner,
-          number: pullRequest.number,
-          updatedAt: pullRequest.updatedAt,
+          titleHTML:
+            subject.__typename === 'PullRequest' ? subject.titleHTML : subject.issueTitleHTML,
+          repositoryNameWithOwner: subject.repository.nameWithOwner,
+          number: subject.number,
+          kind: subject.__typename,
+          updatedAt: subject.updatedAt,
           reasons: ['Mentioned'],
-          handledKeys: [`mention:${key}`],
+          handledKeys: [`mention:${subject.__typename}:${key}`],
         };
       })
       .filter(notEmpty)
@@ -174,11 +182,11 @@ function buildAttentionItems(
     }
   >();
   notifications.forEach(notification => {
-    const pullRequest = getNotificationPullRequest(notification);
-    if (pullRequest == null) {
+    const subject = getNotificationSubject(notification);
+    if (subject == null) {
       return;
     }
-    const key = pullRequestKey(pullRequest.repositoryNameWithOwner, pullRequest.number);
+    const key = subjectKey(subject.repositoryNameWithOwner, subject.number);
     if (excludedKeys.has(key)) {
       return;
     }
@@ -189,8 +197,9 @@ function buildAttentionItems(
             key,
             title: notification.subjectTitle,
             titleHTML: null,
-            repositoryNameWithOwner: pullRequest.repositoryNameWithOwner,
-            number: pullRequest.number,
+            repositoryNameWithOwner: subject.repositoryNameWithOwner,
+            number: subject.number,
+            kind: subject.subjectType,
             updatedAt: notification.updatedAt,
             reasons: current?.reasons ?? new Set<string>(),
             handledKeys: current?.handledKeys ?? [],
@@ -229,7 +238,12 @@ function readHandledAttention(): Record<string, string> {
   }
 }
 
-function pullRequestKey(repositoryNameWithOwner: string, number: number): string {
+function subjectPath(item: AttentionItem): string {
+  const path = item.kind === 'Issue' ? 'issues' : 'pull';
+  return `/${item.repositoryNameWithOwner}/${path}/${item.number}`;
+}
+
+function subjectKey(repositoryNameWithOwner: string, number: number): string {
   return `${repositoryNameWithOwner}#${number}`;
 }
 
