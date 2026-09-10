@@ -322,6 +322,7 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);
-  await expect(page.getByText('Your pull requests', {exact: true})).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Review queue'})).toBeVisible();
+  await expect(page.getByText('Something went wrong', {exact: true})).toHaveCount(0);
   await context.close();
 });
