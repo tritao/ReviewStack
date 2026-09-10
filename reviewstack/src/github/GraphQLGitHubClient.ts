@@ -141,6 +141,11 @@ export default class GraphQLGitHubClient implements GitHubClient {
     } = object;
     // TODO(mbolin): Check rawParents.totalCount against MAX_PARENT_COMMITS_TO_FETCH
     const parents = (rawParents?.nodes ?? []).map(obj => obj?.oid).filter(notEmpty);
+    const resolvedTree = objectToTree(tree);
+    if (resolvedTree == null) {
+      return null;
+    }
+
     return {
       id,
       oid: resolvedOid,
@@ -152,7 +157,7 @@ export default class GraphQLGitHubClient implements GitHubClient {
       messageBody,
       messageBodyHTML,
       parents,
-      tree: objectToTree(tree),
+      tree: resolvedTree,
     };
   }
 
@@ -518,7 +523,10 @@ async function githubRestError(response: Response, operation: string): Promise<E
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function objectToTree(object: any): Tree {
+function objectToTree(object: any): Tree | null {
+  if (object == null) {
+    return null;
+  }
   const {id, oid, entries} = object;
   return {
     id,

@@ -36,6 +36,41 @@ test('returns null only for a missing REST blob', async () => {
   await expect(client().getBlob(OID_A)).resolves.toBeNull();
 });
 
+test('returns null for a missing GraphQL tree object', async () => {
+  jest
+    .spyOn(global, 'fetch')
+    .mockResolvedValue(mockResponse({data: {repositoryOwner: {repository: {object: null}}}}));
+  await expect(client().getTree(OID_A)).resolves.toBeNull();
+});
+
+test('returns null for a commit without a root tree', async () => {
+  jest.spyOn(global, 'fetch').mockResolvedValue(
+    mockResponse({
+      data: {
+        repositoryOwner: {
+          repository: {
+            object: {
+              __typename: 'Commit',
+              id: 'commit-node',
+              oid: OID_A,
+              committedDate: '2024-01-01T00:00:00Z',
+              url: 'https://github.com/FreeCAD/FreeCAD/commit/a',
+              message: 'message',
+              messageBody: '',
+              messageBodyHTML: '',
+              messageHeadline: 'message',
+              messageHeadlineHTML: 'message',
+              tree: null,
+              parents: {nodes: [], totalCount: 0},
+            },
+          },
+        },
+      },
+    }),
+  );
+  await expect(client().getCommit(OID_A)).resolves.toBeNull();
+});
+
 test('reports a REST rate limit instead of treating it as a missing blob', async () => {
   jest
     .spyOn(global, 'fetch')
