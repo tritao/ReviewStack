@@ -186,6 +186,61 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
     )
     .toBe(true);
   await stackSelector.click();
+  const stackOverlay = page.locator('.pull-request-stack-overlay');
+  await expect(stackOverlay).toBeVisible();
+  const stackOverlayGeometry = await stackOverlay.evaluate(overlay => {
+    const tolerance = 1;
+    const overlayRect = overlay.getBoundingClientRect();
+    const menuItems = [...overlay.querySelectorAll('[role="menuitemradio"]')].filter(item => {
+      const rect = item.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    });
+    const itemsAreContained = menuItems.every(item => {
+      const rect = item.getBoundingClientRect();
+      return (
+        rect.top >= overlayRect.top - tolerance &&
+        rect.bottom <= overlayRect.bottom + tolerance &&
+        rect.left >= overlayRect.left - tolerance &&
+        rect.right <= overlayRect.right + tolerance
+      );
+    });
+    const intersectingHeaders = [...document.querySelectorAll('.split-diff-view-file-header')]
+      .map(header => header.getBoundingClientRect())
+      .filter(
+        rect =>
+          rect.width > 0 &&
+          rect.height > 0 &&
+          rect.left < overlayRect.right &&
+          rect.right > overlayRect.left &&
+          rect.top < overlayRect.bottom &&
+          rect.bottom > overlayRect.top,
+      );
+    const overlayIsOnTop = intersectingHeaders.every(rect => {
+      const left = Math.max(rect.left, overlayRect.left);
+      const right = Math.min(rect.right, overlayRect.right);
+      const top = Math.max(rect.top, overlayRect.top);
+      const bottom = Math.min(rect.bottom, overlayRect.bottom);
+      const topElement = document.elementFromPoint((left + right) / 2, (top + bottom) / 2);
+      return topElement != null && overlay.contains(topElement);
+    });
+
+    return {
+      fitsViewport:
+        overlayRect.left >= -tolerance &&
+        overlayRect.right <= window.innerWidth + tolerance &&
+        overlayRect.top >= -tolerance &&
+        overlayRect.bottom <= window.innerHeight + tolerance,
+      hasBoundedWidth: overlayRect.width <= Math.min(480, window.innerWidth - 16) + tolerance,
+      itemsAreContained,
+      overlayIsOnTop,
+    };
+  });
+  expect(stackOverlayGeometry).toEqual({
+    fitsViewport: true,
+    hasBoundedWidth: true,
+    itemsAreContained: true,
+    overlayIsOnTop: true,
+  });
   const displayedPullRequests = await page
     .getByRole('menuitemradio')
     .evaluateAll(items =>

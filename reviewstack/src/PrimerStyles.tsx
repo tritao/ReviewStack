@@ -36,6 +36,11 @@ ${defineStyleOnBody(theme)}
 .reviewstack {
   --panel-view-border: ${theme?.colors.border.default};
 }
+
+/* Primer renders menus and dialogs here. Keep transient UI above sticky review content. */
+#__primerPortalRoot__ {
+  z-index: 100;
+}
 `}
     </style>
   );

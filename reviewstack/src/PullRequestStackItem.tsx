@@ -39,8 +39,8 @@ export default React.memo(function PullRequestStackItem({
     <ActionList.Item
       onSelect={() => navigateToPullRequest(number)}
       selected={isSelected}
-      sx={{display: 'flex', alignItems: 'center'}}>
-      <Box fontSize={0}>
+      sx={{display: 'flex', alignItems: 'center', minWidth: 0}}>
+      <Box fontSize={0} minWidth={0} width="100%">
         <Box display="flex" alignItems="center" gridGap={1}>
           <Text fontWeight="bold">Layer {layer}</Text>
           {layer === 1 && <Text color="fg.muted">· Base</Text>}
@@ -48,7 +48,11 @@ export default React.memo(function PullRequestStackItem({
           {isSelected && <Text color="accent.fg">· Current</Text>}
         </Box>
         <Box overflow="hidden" sx={{textOverflow: 'ellipsis'}}>
-          <Text fontSize={1} whiteSpace="nowrap">
+          <Text
+            display="block"
+            fontSize={1}
+            whiteSpace="nowrap"
+            sx={{overflow: 'hidden', textOverflow: 'ellipsis'}}>
             {title}
           </Text>
         </Box>

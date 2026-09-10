@@ -111,7 +111,12 @@ export default function PullRequestStack(): React.ReactElement | null {
         <ActionMenu.Button leadingVisual={StackIcon}>
           Stack · Layer {total - index} of {total}
         </ActionMenu.Button>
-        <ActionMenu.Overlay width="xxlarge">
+        <ActionMenu.Overlay
+          className="pull-request-stack-overlay"
+          width="large"
+          maxHeight="large"
+          overflow="auto"
+          sx={{maxWidth: 'calc(100vw - 16px)'}}>
           <Box paddingX={3} paddingTop={2}>
             <Text color="fg.muted" fontSize={0} fontWeight="bold">
               {total}-layer stack
