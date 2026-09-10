@@ -5,7 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import type {HomePagePullRequestFragment, UserHomePageQueryData} from './generated/graphql';
+import type {HomePagePullRequestFragment} from './generated/graphql';
+import type {GitHubUserHomePageData} from './jotai/atoms';
 import './UserHomePage.css';
 
 import ActorAvatar from './ActorAvatar';
@@ -43,8 +44,8 @@ export default function UserHomePage(): React.ReactElement {
 
 function UserHomePageRoot(): React.ReactElement {
   const data = useAtomValue(gitHubUserHomePageDataAtom);
-  const reviewRequests = data?.search.nodes ?? [];
-  const ownPullRequests = data?.viewer.pullRequests.nodes ?? [];
+  const reviewRequests = data?.reviewRequests ?? [];
+  const ownPullRequests = data?.pullRequests ?? [];
   const requestedPullRequests = reviewRequests
     .map(node => (node?.__typename === 'PullRequest' ? node : null))
     .filter(notEmpty);
@@ -53,7 +54,7 @@ function UserHomePageRoot(): React.ReactElement {
       <ContinueReview pullRequests={[...requestedPullRequests, ...ownPullRequests]} />
       <ReviewQueue reviewRequests={reviewRequests} />
       <PullRequestsForUser pullRequests={ownPullRequests} />
-      <RepositoriesForUser repos={data?.viewer.repositories.nodes ?? []} />
+      <RepositoriesForUser repos={data?.repositories ?? []} />
     </>
   );
 }
@@ -115,7 +116,7 @@ function ContinueReview({
 function ReviewQueue({
   reviewRequests,
 }: {
-  reviewRequests: NonNullable<UserHomePageQueryData['search']['nodes']>;
+  reviewRequests: NonNullable<GitHubUserHomePageData['reviewRequests']>;
 }): React.ReactElement {
   const pullRequests = reviewRequests
     .map(node => (node?.__typename === 'PullRequest' ? node : null))

@@ -16,8 +16,10 @@ import type {
   LabelFragment,
   StackPullRequestFragment,
   UserFragment,
-  UserHomePageQueryData,
-  UserHomePageQueryVariables,
+  UserHomePagePullRequestsQueryData,
+  UserHomePageRepositoriesQueryData,
+  UserHomePageReviewRequestsQueryData,
+  UserHomePageReviewRequestsQueryVariables,
   UsernameQueryData,
   UsernameQueryVariables,
 } from '../generated/graphql';
@@ -51,7 +53,9 @@ import {
   DiffSide,
   PullRequestReviewEvent,
   UsernameQuery,
-  UserHomePageQuery,
+  UserHomePagePullRequestsQuery,
+  UserHomePageRepositoriesQuery,
+  UserHomePageReviewRequestsQuery,
 } from '../generated/graphql';
 import {pullRequestNumbersFromBody} from '../ghstackUtils';
 import CachingGitHubClient, {openDatabase} from '../github/CachingGitHubClient';
@@ -1721,24 +1725,64 @@ export const gitHubPullRequestCheckRunsAtom = atom<CheckRun[]>(get => {
  * Async atom that fetches the viewer's home-page PR data.
  * This includes review requests and recent pull requests.
  */
-export const gitHubUserHomePageDataAtom = atom<Promise<UserHomePageQueryData | null>>(_get => {
-  const token = localStorage.getItem('github.token');
-  if (token == null) {
-    return Promise.resolve(null);
-  }
+export type GitHubUserHomePageData = {
+  repositories: UserHomePageRepositoriesQueryData['viewer']['repositories']['nodes'];
+  pullRequests: UserHomePagePullRequestsQueryData['viewer']['pullRequests']['nodes'];
+  reviewRequests: UserHomePageReviewRequestsQueryData['search']['nodes'];
+};
 
-  // Based on search query for https://github.com/pulls/review-requested
-  const reviewRequestedQuery = 'is:open is:pr archived:false review-requested:@me';
+export const gitHubUserHomePageDataAtom = atom<Promise<GitHubUserHomePageData | null>>(
+  async _get => {
+    const token = localStorage.getItem('github.token');
+    if (token == null) {
+      return Promise.resolve(null);
+    }
 
-  const hostname = localStorage.getItem('github.hostname') ?? 'github.com';
-  const graphQLEndpoint = createGraphQLEndpointForHostname(hostname);
-  return queryGraphQL<UserHomePageQueryData, UserHomePageQueryVariables>(
-    UserHomePageQuery,
-    {reviewRequestedQuery},
-    createRequestHeaders(token),
-    graphQLEndpoint,
-  );
-});
+    // Based on search query for https://github.com/pulls/review-requested
+    const reviewRequestedQuery = 'is:open is:pr archived:false review-requested:@me';
+
+    const hostname = localStorage.getItem('github.hostname') ?? 'github.com';
+    const graphQLEndpoint = createGraphQLEndpointForHostname(hostname);
+    const requestHeaders = createRequestHeaders(token);
+    const [repositories, pullRequests, reviewRequests] = await Promise.allSettled([
+      queryGraphQL<UserHomePageRepositoriesQueryData, Record<string, never>>(
+        UserHomePageRepositoriesQuery,
+        {},
+        requestHeaders,
+        graphQLEndpoint,
+      ),
+      queryGraphQL<UserHomePagePullRequestsQueryData, Record<string, never>>(
+        UserHomePagePullRequestsQuery,
+        {},
+        requestHeaders,
+        graphQLEndpoint,
+      ),
+      queryGraphQL<UserHomePageReviewRequestsQueryData, UserHomePageReviewRequestsQueryVariables>(
+        UserHomePageReviewRequestsQuery,
+        {reviewRequestedQuery},
+        requestHeaders,
+        graphQLEndpoint,
+      ),
+    ]);
+
+    if (
+      repositories.status === 'rejected' &&
+      pullRequests.status === 'rejected' &&
+      reviewRequests.status === 'rejected'
+    ) {
+      throw repositories.reason;
+    }
+
+    return {
+      repositories:
+        repositories.status === 'fulfilled' ? repositories.value.viewer.repositories.nodes : [],
+      pullRequests:
+        pullRequests.status === 'fulfilled' ? pullRequests.value.viewer.pullRequests.nodes : [],
+      reviewRequests:
+        reviewRequests.status === 'fulfilled' ? reviewRequests.value.search.nodes : [],
+    };
+  },
+);
 
 // =============================================================================
 // Pull Requests Search
