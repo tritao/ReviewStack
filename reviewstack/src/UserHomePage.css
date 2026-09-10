@@ -93,6 +93,10 @@
   gap: 4px;
 }
 
+.reviewstack-attention-icon {
+  color: var(--fgColor-attention, #9a6700);
+}
+
 .reviewstack-action-status {
   margin-top: 1px;
   white-space: nowrap;

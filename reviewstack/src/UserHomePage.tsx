@@ -13,6 +13,7 @@ import ActorAvatar from './ActorAvatar';
 import CenteredSpinner from './CenteredSpinner';
 import Link from './Link';
 import TrustedRenderedMarkdown from './TrustedRenderedMarkdown';
+import UserAttentionQueue from './UserAttentionQueue';
 import {MergeableState, PullRequestReviewDecision} from './generated/graphql';
 import {gitHubUserHomePageDataAtom} from './jotai/atoms';
 import {getReviewSessions} from './reviewProgress';
@@ -49,8 +50,17 @@ function UserHomePageRoot(): React.ReactElement {
   const requestedPullRequests = reviewRequests
     .map(node => (node?.__typename === 'PullRequest' ? node : null))
     .filter(notEmpty);
+  const requestedKeys = new Set(
+    requestedPullRequests.map(pr => `${pr.repository.nameWithOwner}#${pr.number}`),
+  );
   return (
     <>
+      <UserAttentionQueue
+        notifications={data?.notifications ?? []}
+        notificationsAvailable={data?.notificationsAvailable ?? true}
+        mentionedPullRequests={data?.mentionedPullRequests ?? []}
+        excludedKeys={requestedKeys}
+      />
       <ContinueReview pullRequests={[...requestedPullRequests, ...ownPullRequests]} />
       <ReviewQueue reviewRequests={reviewRequests} />
       <PullRequestsForUser pullRequests={ownPullRequests} />

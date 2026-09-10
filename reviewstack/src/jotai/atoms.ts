@@ -15,6 +15,8 @@ import type {
   CheckRunFragment,
   LabelFragment,
   StackPullRequestFragment,
+  UserHomePageMentionsQueryData,
+  UserHomePageMentionsQueryVariables,
   UserFragment,
   UserHomePagePullRequestsQueryData,
   UserHomePageRepositoriesQueryData,
@@ -25,6 +27,7 @@ import type {
 } from '../generated/graphql';
 import type GitHubClient from '../github/GitHubClient';
 import type {DiffCommitIDs, DiffWithCommitIDs, CommitChange} from '../github/diffTypes';
+import type {GitHubNotification} from '../github/notifications';
 import type {
   GitHubPullRequestReviewThread,
   PullRequest,
@@ -54,6 +57,7 @@ import {
   PullRequestReviewEvent,
   UsernameQuery,
   UserHomePagePullRequestsQuery,
+  UserHomePageMentionsQuery,
   UserHomePageRepositoriesQuery,
   UserHomePageReviewRequestsQuery,
 } from '../generated/graphql';
@@ -65,6 +69,7 @@ import {diffCommitWithParent, diffCommits} from '../github/diff';
 import {diffVersions} from '../github/diffVersions';
 import {createGraphQLEndpointForHostname} from '../github/gitHubCredentials';
 import {broadcastLogoutMessage, subscribeToLogout} from '../github/logoutBroadcastChannel';
+import {fetchGitHubNotifications} from '../github/notifications';
 import queryGraphQL from '../github/queryGraphQL';
 import {baseParentForVersion, exactCommitsForLayer} from '../pullRequestVersions';
 import {parseSaplingStackBody} from '../saplingStack';
@@ -1729,6 +1734,9 @@ export type GitHubUserHomePageData = {
   repositories: UserHomePageRepositoriesQueryData['viewer']['repositories']['nodes'];
   pullRequests: UserHomePagePullRequestsQueryData['viewer']['pullRequests']['nodes'];
   reviewRequests: UserHomePageReviewRequestsQueryData['search']['nodes'];
+  mentionedPullRequests: UserHomePageMentionsQueryData['search']['nodes'];
+  notifications: GitHubNotification[];
+  notificationsAvailable: boolean;
 };
 
 export const gitHubUserHomePageDataAtom = atom<Promise<GitHubUserHomePageData | null>>(
@@ -1764,6 +1772,16 @@ export const gitHubUserHomePageDataAtom = atom<Promise<GitHubUserHomePageData | 
         graphQLEndpoint,
       ),
     ]);
+    const mentionsQuery = 'is:open is:pr archived:false mentions:@me';
+    const [mentionedPullRequests, notifications] = await Promise.allSettled([
+      queryGraphQL<UserHomePageMentionsQueryData, UserHomePageMentionsQueryVariables>(
+        UserHomePageMentionsQuery,
+        {mentionsQuery},
+        requestHeaders,
+        graphQLEndpoint,
+      ),
+      fetchGitHubNotifications(hostname, token),
+    ]);
 
     if (
       repositories.status === 'rejected' &&
@@ -1780,6 +1798,12 @@ export const gitHubUserHomePageDataAtom = atom<Promise<GitHubUserHomePageData | 
         pullRequests.status === 'fulfilled' ? pullRequests.value.viewer.pullRequests.nodes : [],
       reviewRequests:
         reviewRequests.status === 'fulfilled' ? reviewRequests.value.search.nodes : [],
+      mentionedPullRequests:
+        mentionedPullRequests.status === 'fulfilled'
+          ? mentionedPullRequests.value.search.nodes
+          : [],
+      notifications: notifications.status === 'fulfilled' ? notifications.value : [],
+      notificationsAvailable: notifications.status === 'fulfilled',
     };
   },
 );
