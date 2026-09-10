@@ -12,18 +12,16 @@ import ActorAvatar from './ActorAvatar';
 import CenteredSpinner from './CenteredSpinner';
 import Link from './Link';
 import TrustedRenderedMarkdown from './TrustedRenderedMarkdown';
-import {MergeableState, PullRequestReviewDecision, StatusState} from './generated/graphql';
+import {MergeableState, PullRequestReviewDecision} from './generated/graphql';
 import {gitHubUserHomePageDataAtom} from './jotai/atoms';
 import {getReviewSessions} from './reviewProgress';
 import {formatISODate} from './utils';
 import {
   AlertIcon,
   CheckCircleIcon,
-  ClockIcon,
   CommentIcon,
   GitPullRequestIcon,
   PencilIcon,
-  XCircleIcon,
 } from '@primer/octicons-react';
 import {Box, Button, Heading, IssueLabelToken, Label, Text} from '@primer/react';
 import {useAtomValue} from 'jotai';
@@ -231,7 +229,6 @@ type QueueStatus = {
 };
 
 function queueStatus(pr: HomePagePullRequestFragment): QueueStatus {
-  const checks = pr.commits.nodes?.[0]?.commit.statusCheckRollup?.state;
   if (pr.isDraft) {
     return {group: 'draft', label: 'Draft', priority: 50, icon: PencilIcon, variant: 'secondary'};
   }
@@ -244,40 +241,22 @@ function queueStatus(pr: HomePagePullRequestFragment): QueueStatus {
       variant: 'danger',
     };
   }
-  if (checks === StatusState.Failure || checks === StatusState.Error) {
-    return {
-      group: 'blocked',
-      label: 'Checks failing',
-      priority: 31,
-      icon: XCircleIcon,
-      variant: 'danger',
-    };
-  }
   if (pr.reviewDecision === PullRequestReviewDecision.ChangesRequested) {
     return {
       group: 'blocked',
       label: 'Changes requested',
-      priority: 32,
+      priority: 31,
       icon: AlertIcon,
       variant: 'attention',
     };
   }
-  if (pr.reviewDecision === PullRequestReviewDecision.Approved && checks === StatusState.Success) {
+  if (pr.reviewDecision === PullRequestReviewDecision.Approved) {
     return {
       group: 'ready',
-      label: 'Ready to merge',
+      label: 'Approved',
       priority: 20,
       icon: CheckCircleIcon,
       variant: 'success',
-    };
-  }
-  if (checks === StatusState.Pending || checks === StatusState.Expected) {
-    return {
-      group: 'attention',
-      label: 'Checks running',
-      priority: 11,
-      icon: ClockIcon,
-      variant: 'attention',
     };
   }
   return {
