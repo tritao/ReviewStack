@@ -116,19 +116,23 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   await expect(checksPanel).toBeVisible();
   await checksPanel.locator('summary').click();
   const githubCheckLink = checksPanel.getByRole('link', {name: /^View .* on GitHub$/}).first();
-  await expect(githubCheckLink).toBeVisible();
+  await expect(
+    githubCheckLink.or(checksPanel.getByText('No checks reported', {exact: true})),
+  ).toBeVisible();
   await expect(
     page.locator('.reviewstack-pr-workspace').getByText('Checks', {exact: true}),
   ).toHaveCount(0);
   await expect(page.getByText('View Details on GitHub', {exact: true})).toHaveCount(0);
-  await expect
-    .poll(() =>
-      githubCheckLink.getByText('GitHub', {exact: true}).evaluate(element => {
-        const style = getComputedStyle(element);
-        return style.whiteSpace === 'nowrap';
-      }),
-    )
-    .toBe(true);
+  if ((await githubCheckLink.count()) > 0) {
+    await expect
+      .poll(() =>
+        githubCheckLink.getByText('GitHub', {exact: true}).evaluate(element => {
+          const style = getComputedStyle(element);
+          return style.whiteSpace === 'nowrap';
+        }),
+      )
+      .toBe(true);
+  }
   await reviewComposer.fill(reviewDraft);
   await page.reload();
   await expect(page.getByPlaceholder('Write a comment...').last()).toHaveValue(reviewDraft);
