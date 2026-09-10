@@ -7,7 +7,7 @@
 
 import {makeCommandDispatcher, KeyCode, Modifier} from 'shared/KeyboardShortcuts';
 
-export const [ShortcutCommandContext, useCommand] = makeCommandDispatcher({
+export const [ShortcutCommandContext, useCommand, dispatchCommand] = makeCommandDispatcher({
   ToggleSidebar: [Modifier.CMD, KeyCode.Period],
   NextInStack: [Modifier.SHIFT, KeyCode.N],
   PreviousInStack: [Modifier.SHIFT, KeyCode.P],

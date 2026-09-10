@@ -1791,7 +1791,7 @@ export const gitHubPullRequestPendingReviewIDAtom = atom<ID | null>(get => {
 export const gitHubPullRequestReviewThreadsAtom = atom<GitHubPullRequestReviewThread[]>(get => {
   const pullRequest = get(gitHubPullRequestAtom);
   return (pullRequest?.reviewThreads.nodes ?? []).filter(notEmpty).map(reviewThread => {
-    const {originalLine, diffSide, comments} = reviewThread;
+    const {originalLine, diffSide, comments, isResolved} = reviewThread;
     const normalizedComments = (comments?.nodes ?? [])
       .map(comment => {
         if (comment == null) {
@@ -1813,6 +1813,7 @@ export const gitHubPullRequestReviewThreadsAtom = atom<GitHubPullRequestReviewTh
     const firstCommentID = normalizedComments[0].id;
     return {
       firstCommentID,
+      isResolved,
       originalLine,
       diffSide,
       comments: normalizedComments,

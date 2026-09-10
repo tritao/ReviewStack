@@ -44,6 +44,7 @@ export type PullRequest = NonNullable<Repository['pullRequest']>;
 export type PullRequestReviewThread = PullRequestReviewThreadFragment;
 
 export type GitHubPullRequestReviewThread = {
+  isResolved: boolean;
   /**
    * In the timeline, we expect there to be a PullRequestReview object
    * (__typename is PULL_REQUEST_REVIEW) whose `comments.nodes[0].id` matches
