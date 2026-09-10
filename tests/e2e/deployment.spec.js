@@ -146,6 +146,13 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   await page.reload();
   await expect(page.getByPlaceholder('Write a comment...').last()).toHaveValue(reviewDraft);
   const firstCommitURL = page.url();
+  await page.locator('.reviewstack-pr-workspace').evaluate(element => {
+    window.__reviewstackCommitSwitchWidths = [element.getBoundingClientRect().width];
+    window.__reviewstackCommitSwitchObserver = new ResizeObserver(entries => {
+      window.__reviewstackCommitSwitchWidths.push(entries[0].contentRect.width);
+    });
+    window.__reviewstackCommitSwitchObserver.observe(element);
+  });
   await page
     .getByLabel(/Mark .* as viewed/)
     .first()
@@ -153,6 +160,11 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   await page.getByRole('button', {name: 'Reviewed → next'}).click();
   await expect.poll(() => page.url()).not.toBe(firstCommitURL);
   await expect(page.getByText('1 of 2 reviewed')).toBeVisible();
+  const commitSwitchWidths = await page.evaluate(() => {
+    window.__reviewstackCommitSwitchObserver.disconnect();
+    return window.__reviewstackCommitSwitchWidths;
+  });
+  expect(Math.max(...commitSwitchWidths) - Math.min(...commitSwitchWidths)).toBeLessThanOrEqual(2);
   const stackSelector = page.getByRole('button', {name: /^Stack · Layer \d+ of \d+$/});
   await expect(stackSelector).toBeVisible();
   await expect

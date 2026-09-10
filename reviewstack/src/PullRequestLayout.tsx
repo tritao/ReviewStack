@@ -22,7 +22,7 @@ import {pullRequestDrawerStateAtom} from './pullRequestDrawerState';
 import {CommentDiscussionIcon, GitCommitIcon} from '@primer/octicons-react';
 import {Box, Text} from '@primer/react';
 import {useAtomValue, useSetAtom} from 'jotai';
-import React, {Component, Suspense, useEffect, useState} from 'react';
+import React, {Component, Suspense, useEffect, useLayoutEffect, useState} from 'react';
 import {Drawers} from 'shared/Drawers';
 
 import './PullRequestLayout.css';
@@ -57,7 +57,7 @@ export default function PullRequestLayout({
   }, []);
 
   const setDrawerState = useSetAtom(pullRequestDrawerStateAtom);
-  useEffect(() => {
+  useLayoutEffect(() => {
     setDrawerState(state => ({
       ...state,
       left: {...state.left, collapsed: reviewTarget.type !== 'commit'},

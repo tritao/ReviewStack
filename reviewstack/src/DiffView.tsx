@@ -26,8 +26,10 @@ function DiffFileSkeleton(): React.ReactElement {
       borderStyle="solid"
       borderColor="border.default"
       borderRadius={2}
+      width="100%"
       padding={3}
-      bg="canvas.subtle">
+      bg="canvas.subtle"
+      sx={{boxSizing: 'border-box'}}>
       <Box height={20} width="60%" bg="neutral.muted" borderRadius={1} />
     </Box>
   );
