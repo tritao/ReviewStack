@@ -6,7 +6,8 @@
 > shows each stack layer independently, lets you review commit by commit, and
 > remembers where you left off.
 
-**Open the hosted app:** <https://tritao.github.io/ReviewStack/>
+**Live deployment:** <https://tritao.github.io/ReviewStack/> · **Source:**
+<https://github.com/tritao/ReviewStack>
 
 ![ReviewStack showing a stacked FreeCAD pull request](reviewstack/docs/screenshots/stack-review.png)
 
