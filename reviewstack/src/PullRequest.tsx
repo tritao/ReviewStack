@@ -14,7 +14,6 @@ import DiffView from './DiffView';
 import PullRequestChangeCount from './PullRequestChangeCount';
 import PullRequestLabels from './PullRequestLabels';
 import PullRequestReviewers from './PullRequestReviewers';
-import PullRequestSignals from './PullRequestSignals';
 import TrustedRenderedMarkdown from './TrustedRenderedMarkdown';
 import {stripStackInfoFromBodyHTML} from './ghstackUtils';
 import {
@@ -163,7 +162,7 @@ function PullRequestDetails() {
           borderRadius={4}
           padding={2}>
           <Text as="summary" fontWeight="bold" sx={{cursor: 'pointer'}}>
-            PR context, labels, reviewers, and checks
+            PR context, labels, and reviewers
           </Text>
           <Box display="flex" flexDirection="column" gridGap={3} paddingTop={3}>
             <PullRequestReviewers />
@@ -177,7 +176,6 @@ function PullRequestDetails() {
               padding={3}>
               <TrustedRenderedMarkdown trustedHTML={pullRequestBodyHTML} />
             </Box>
-            <PullRequestSignals />
           </Box>
         </Box>
       ) : (
@@ -191,7 +189,6 @@ function PullRequestDetails() {
             padding={3}>
             <TrustedRenderedMarkdown trustedHTML={pullRequestBodyHTML} />
           </Box>
-          <PullRequestSignals />
         </>
       )}
       <Suspense fallback={<CenteredSpinner />}>

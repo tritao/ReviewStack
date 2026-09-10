@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import PullRequestChecksSummary from './PullRequestChecksSummary';
 import PullRequestStack from './PullRequestStack';
 import PullRequestStateLabel from './PullRequestStateLabel';
 import PullRequestVersions from './PullRequestVersions';
@@ -55,6 +56,7 @@ export default function PullRequestHeader(): React.ReactElement | null {
       <Box className="reviewstack-pr-controls" gridGap={2}>
         <PullRequestStateLabel reviewDecision={reviewDecision ?? null} state={state} />
         <PullRequestStack />
+        <PullRequestChecksSummary />
         {/*
           Our goal here is to minimize re-rendering when the user selects a
           different value from <PullRequestStack>, so we apply <Suspense> in a

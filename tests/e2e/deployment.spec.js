@@ -107,6 +107,28 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   const reviewComposer = page.getByPlaceholder('Write a comment...').last();
   await expect(reviewComposer).toBeVisible();
   await expect(page.getByText(/Reviewing after/).last()).toBeAttached();
+  const checksSummary = page.getByRole('button', {
+    name: /(?:checks|failed|running|need attention).*Open check details/i,
+  });
+  await expect(checksSummary).toBeVisible();
+  await checksSummary.click();
+  const checksPanel = page.locator('.reviewstack-pr-timeline details');
+  await expect(checksPanel).toBeVisible();
+  await checksPanel.locator('summary').click();
+  const githubCheckLink = checksPanel.getByRole('link', {name: /^View .* on GitHub$/}).first();
+  await expect(githubCheckLink).toBeVisible();
+  await expect(
+    page.locator('.reviewstack-pr-workspace').getByText('Checks', {exact: true}),
+  ).toHaveCount(0);
+  await expect(page.getByText('View Details on GitHub', {exact: true})).toHaveCount(0);
+  await expect
+    .poll(() =>
+      githubCheckLink.getByText('GitHub', {exact: true}).evaluate(element => {
+        const style = getComputedStyle(element);
+        return style.whiteSpace === 'nowrap';
+      }),
+    )
+    .toBe(true);
   await reviewComposer.fill(reviewDraft);
   await page.reload();
   await expect(page.getByPlaceholder('Write a comment...').last()).toHaveValue(reviewDraft);
@@ -123,7 +145,9 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   await expect
     .poll(() =>
       stackSelector.evaluate(button => {
-        const icon = button.querySelector('[data-component="trailingIcon"]');
+        const icon = button.querySelector(
+          '[data-component="trailingAction"], [data-component="trailingIcon"]',
+        );
         if (icon == null) return false;
         const buttonRect = button.getBoundingClientRect();
         const iconRect = icon.getBoundingClientRect();

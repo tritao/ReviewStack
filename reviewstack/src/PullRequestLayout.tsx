@@ -5,13 +5,12 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import type {AllDrawersState} from 'shared/Drawers';
-
 import CenteredSpinner from './CenteredSpinner';
 import CommitReviewRail from './CommitReviewRail';
 import {useCommand} from './KeyboardShortcuts';
 import PullRequest from './PullRequest';
 import PullRequestHeader from './PullRequestHeader';
+import PullRequestSignals from './PullRequestSignals';
 import PullRequestTimeline from './PullRequestTimeline';
 import PullRequestTimelineCommentInput from './PullRequestTimelineCommentInput';
 import {
@@ -19,20 +18,14 @@ import {
   gitHubPullRequestIDAtom,
   gitHubPullRequestReviewTargetAtom,
 } from './jotai';
+import {pullRequestDrawerStateAtom} from './pullRequestDrawerState';
 import {CommentDiscussionIcon, GitCommitIcon} from '@primer/octicons-react';
 import {Box, Text} from '@primer/react';
-import {atom, useAtomValue, useSetAtom} from 'jotai';
+import {useAtomValue, useSetAtom} from 'jotai';
 import React, {Component, Suspense, useEffect, useState} from 'react';
 import {Drawers} from 'shared/Drawers';
 
 import './PullRequestLayout.css';
-
-const drawerStateAtom = atom<AllDrawersState>({
-  right: {size: 500, collapsed: false},
-  left: {size: 300, collapsed: true},
-  top: {size: 200, collapsed: true},
-  bottom: {size: 200, collapsed: true},
-});
 
 export default function PullRequestLayout({
   org,
@@ -63,7 +56,7 @@ export default function PullRequestLayout({
     return () => media.removeEventListener('change', update);
   }, []);
 
-  const setDrawerState = useSetAtom(drawerStateAtom);
+  const setDrawerState = useSetAtom(pullRequestDrawerStateAtom);
   useEffect(() => {
     setDrawerState(state => ({
       ...state,
@@ -97,7 +90,7 @@ export default function PullRequestLayout({
       <Suspense fallback={<CenteredSpinner message="Loading pull request..." />}>
         {isNarrow ? (
           <Drawers
-            drawerState={drawerStateAtom}
+            drawerState={pullRequestDrawerStateAtom}
             errorBoundary={ErrorBoundary}
             bottomLabel={<ReviewDrawerLabel />}
             bottom={<TimelineDrawer />}>
@@ -109,7 +102,7 @@ export default function PullRequestLayout({
           </Drawers>
         ) : reviewTarget.type === 'commit' ? (
           <Drawers
-            drawerState={drawerStateAtom}
+            drawerState={pullRequestDrawerStateAtom}
             errorBoundary={ErrorBoundary}
             leftLabel={<CommitRailLabel />}
             left={<CommitReviewRail />}
@@ -119,7 +112,7 @@ export default function PullRequestLayout({
           </Drawers>
         ) : (
           <Drawers
-            drawerState={drawerStateAtom}
+            drawerState={pullRequestDrawerStateAtom}
             errorBoundary={ErrorBoundary}
             rightLabel={<ReviewDrawerLabel />}
             right={<TimelineDrawer />}>
@@ -162,6 +155,14 @@ function ReviewDrawerLabel() {
 function TimelineDrawer() {
   return (
     <Box className="reviewstack-pr-timeline" display="flex" flexDirection="column">
+      <Box
+        flex="0 0 auto"
+        padding={2}
+        borderBottomWidth={1}
+        borderBottomStyle="solid"
+        borderBottomColor="border.muted">
+        <PullRequestSignals />
+      </Box>
       <Box flex="1 1 auto" minHeight={0} overflow="auto">
         <PullRequestTimeline />
       </Box>

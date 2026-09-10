@@ -16,12 +16,13 @@ import {
   CheckCircleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  LinkExternalIcon,
   QuestionIcon,
   SkipIcon,
   StopIcon,
   XCircleIcon,
 } from '@primer/octicons-react';
-import {Box, Details, Link, Text, useDetails} from '@primer/react';
+import {Box, Details, Text, useDetails} from '@primer/react';
 import {useAtomValue} from 'jotai';
 import {useMemo} from 'react';
 
@@ -40,7 +41,7 @@ export default function PullRequestSignals(): React.ReactElement {
       ),
     [checkRuns],
   );
-  const {getDetailsProps, open} = useDetails({defaultOpen: true});
+  const {getDetailsProps, open} = useDetails({defaultOpen: false});
 
   return (
     <Box borderWidth={1} borderStyle="solid" borderColor="border.muted" borderRadius={4}>
@@ -68,13 +69,17 @@ export default function PullRequestSignals(): React.ReactElement {
             {open ? <ChevronUpIcon size={24} /> : <ChevronDownIcon size={24} />}
           </Box>
         </Box>
-        <Box maxHeight={300} overflowY="auto">
+        <Box maxHeight="40vh" overflowY="auto">
           {sorted.map(({conclusion, name, workflowName, status, url}, index) => (
             <Box
+              as="a"
               key={index}
+              href={url}
+              target="_blank"
+              aria-label={`View ${workflowName ? `${workflowName} / ` : ''}${name} on GitHub`}
               display="grid"
-              gridTemplateColumns="20px 1fr 80px 150px"
-              gridGap={1}
+              gridTemplateColumns="20px minmax(0, 1fr) auto"
+              gridGap={2}
               alignItems="center"
               fontSize={1}
               paddingX={2}
@@ -82,13 +87,24 @@ export default function PullRequestSignals(): React.ReactElement {
               borderTopWidth={index === 0 ? 0 : 1}
               borderTopStyle="solid"
               borderTopColor="border.muted"
-              sx={{borderCollapse: 'collapse'}}>
+              color="fg.default"
+              sx={{
+                borderCollapse: 'collapse',
+                textDecoration: 'none',
+                ':hover': {bg: 'canvas.subtle'},
+              }}>
               <ConclusionIcon conclusion={conclusion ?? null} />
-              <Text fontWeight="bold">{workflowName ? `${workflowName} / ${name}` : name}</Text>
-              <Text>{statusDisplay(status)}</Text>
-              <Link href={url} target="_blank">
-                <Text>View Details on GitHub</Text>
-              </Link>
+              <Box minWidth={0}>
+                <Text display="block" fontWeight="bold" sx={{overflowWrap: 'anywhere'}}>
+                  {workflowName ? `${workflowName} / ${name}` : name}
+                </Text>
+                <Text display="block" color="fg.muted">
+                  {statusDisplay(status)}
+                </Text>
+              </Box>
+              <Text color="accent.fg" sx={{whiteSpace: 'nowrap'}}>
+                GitHub <LinkExternalIcon />
+              </Text>
             </Box>
           ))}
         </Box>
