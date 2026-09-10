@@ -98,6 +98,9 @@ export default function PullRequestNewCommentInput({line, path, side}: Props): R
           onCancel={onCancel}
           autoFocus={true}
           resetInputAfterAddingComment={false}
+          draftKey={`reviewstack.inline-draft.v1:${window.location.pathname}:${
+            comparableVersions?.afterCommitID ?? 'unknown'
+          }:${path}:${side}:${line}`}
         />
       </Box>
     </Box>

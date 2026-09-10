@@ -59,6 +59,7 @@ export default function PullRequestInlineCommentInput({
       onCancel={onCancel}
       autoFocus={true}
       resetInputAfterAddingComment={true}
+      draftKey={`reviewstack.reply-draft.v1:${window.location.pathname}:${commentID}`}
     />
   );
 }

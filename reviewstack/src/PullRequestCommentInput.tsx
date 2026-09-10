@@ -8,7 +8,7 @@
 import type {ChangeEvent, KeyboardEvent} from 'react';
 
 import {Box, Button, Flash, Textarea} from '@primer/react';
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 type Props = {
   /**
@@ -27,6 +27,8 @@ type Props = {
   allowEmptyMessage?: boolean;
   label?: string;
   actionSelector?: React.ReactNode;
+  /** Persist unfinished text while its editor is unmounted or the page reloads. */
+  draftKey?: string;
 };
 
 /**
@@ -59,10 +61,24 @@ export default function PullRequestCommentInput({
   allowEmptyMessage = false,
   label = 'Add Comment',
   actionSelector,
+  draftKey,
 }: Props): React.ReactElement {
-  const [comment, setComment] = useState<string>('');
+  const [comment, setComment] = useState<string>(() =>
+    draftKey == null ? '' : localStorage.getItem(draftKey) ?? '',
+  );
   const [disabled, setDisabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (draftKey == null) {
+      return;
+    }
+    if (comment === '') {
+      localStorage.removeItem(draftKey);
+    } else {
+      localStorage.setItem(draftKey, comment);
+    }
+  }, [comment, draftKey]);
 
   const onChange = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -90,11 +106,22 @@ export default function PullRequestCommentInput({
       return;
     }
 
+    if (draftKey != null) {
+      localStorage.removeItem(draftKey);
+    }
+
     if (resetInputAfterAddingComment) {
       setComment('');
       setDisabled(false);
     }
-  }, [addComment, resetInputAfterAddingComment, comment, setDisabled, setComment]);
+  }, [addComment, draftKey, resetInputAfterAddingComment, comment, setDisabled, setComment]);
+
+  const cancel = useCallback(() => {
+    if (draftKey != null) {
+      localStorage.removeItem(draftKey);
+    }
+    onCancel?.();
+  }, [draftKey, onCancel]);
 
   const isAddCommentDisabled = disabled || (!allowEmptyMessage && comment.trim() === '');
 
@@ -117,7 +144,7 @@ export default function PullRequestCommentInput({
 
   const cancelButton =
     onCancel != null ? (
-      <Button variant="danger" onClick={onCancel} disabled={disabled}>
+      <Button variant="danger" onClick={cancel} disabled={disabled}>
         Cancel
       </Button>
     ) : null;
