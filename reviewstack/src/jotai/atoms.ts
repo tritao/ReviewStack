@@ -1092,6 +1092,7 @@ const gitHubPullRequestVersionBaseAndCommitsAtom = atomFamily(
           commit: sha,
           committedDate: commit.committer.date,
           title: commit.message.split('\n', 1)[0] ?? '',
+          messageBody: commit.message.split('\n').slice(1).join('\n').trim() || null,
           parents: parents.map(({sha}) => sha),
           version: null,
         })),
@@ -1205,6 +1206,7 @@ export const gitHubPullRequestVersionsAtom = atom<Promise<Version[]>>(async get 
             commit: f.beforeCommit,
             committedDate: f.beforeCommittedDate,
             title: 'Version ' + (i + 1),
+            messageBody: null,
             parents: f.beforeParents,
             version: i + 1,
           });
@@ -1217,6 +1219,7 @@ export const gitHubPullRequestVersionsAtom = atom<Promise<Version[]>>(async get 
           commit: c.oid,
           committedDate: c.committedDate,
           title: c.messageHeadline,
+          messageBody: c.messageBody,
           parents: c.parents,
           version: versionCommits.length + 1,
         }),

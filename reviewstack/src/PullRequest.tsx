@@ -14,6 +14,7 @@ import DiffView from './DiffView';
 import PullRequestChangeCount from './PullRequestChangeCount';
 import PullRequestLabels from './PullRequestLabels';
 import PullRequestReviewers from './PullRequestReviewers';
+import SelectedCommitContext from './SelectedCommitContext';
 import TrustedRenderedMarkdown from './TrustedRenderedMarkdown';
 import {stripStackInfoFromBodyHTML} from './ghstackUtils';
 import {
@@ -191,6 +192,7 @@ function PullRequestDetails() {
           </Box>
         </>
       )}
+      {reviewTarget.type === 'commit' && <SelectedCommitContext />}
       <Suspense fallback={<CenteredSpinner />}>
         <div>
           <div

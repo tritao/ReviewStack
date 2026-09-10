@@ -102,6 +102,15 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   await expect(page).toHaveURL(/(?:\?|&)mode=commit(?:&|$)/);
   await expect(page.getByRole('heading', {name: 'Commit review'})).toBeVisible();
   await expect(page.getByText('0 of 2 reviewed')).toBeVisible();
+  const selectedCommitContext = page.locator('.selected-commit-context');
+  await expect(selectedCommitContext).toBeVisible();
+  await expect(selectedCommitContext).toContainText(/Commit \d+ of \d+ · [0-9a-f]+/);
+  const showFullMessage = selectedCommitContext.getByRole('button', {name: 'Show full message'});
+  if ((await showFullMessage.count()) > 0) {
+    await showFullMessage.click();
+    await expect(showFullMessage).toHaveAttribute('aria-expanded', 'true');
+    await expect(selectedCommitContext.getByRole('button', {name: 'Collapse'})).toBeVisible();
+  }
   await page.locator('.commit-review-actions').getByRole('button', {name: 'Comment'}).click();
   const reviewDraft = 'Persistent review draft — do not submit';
   const reviewComposer = page.getByPlaceholder('Write a comment...').last();

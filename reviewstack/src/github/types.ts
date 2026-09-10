@@ -148,6 +148,8 @@ export interface VersionCommit {
    * real estate.
    */
   title: string;
+  /** Commit message content after the headline, when available. */
+  messageBody: string | null;
   parents: GitObjectID[];
 
   /**

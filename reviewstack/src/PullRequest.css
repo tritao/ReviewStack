@@ -15,3 +15,10 @@
   font-weight: bold;
   margin-bottom: 4px;
 }
+
+.selected-commit-message-collapsed {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
