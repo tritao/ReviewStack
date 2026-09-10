@@ -2,9 +2,35 @@ fragment HomePagePullRequestFragment on PullRequest {
   __typename
   number
   titleHTML
+  updatedAt
+  isDraft
+  mergeable
+  author {
+    login
+    avatarUrl
+  }
   repository {
     nameWithOwner
   }
   state
   reviewDecision
+  labels(first: 5) {
+    nodes {
+      id
+      name
+      color
+    }
+  }
+  comments {
+    totalCount
+  }
+  commits(last: 1) {
+    nodes {
+      commit {
+        statusCheckRollup {
+          state
+        }
+      }
+    }
+  }
 }

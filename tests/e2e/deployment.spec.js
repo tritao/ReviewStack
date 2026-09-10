@@ -290,5 +290,20 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
       page.locator('.drawer-bottom .drawer-label').evaluate(element => element.clientHeight),
     )
     .toBeGreaterThanOrEqual(44);
+
+  await page.goto(new URL('./', baseURL).toString());
+  await expect(page.getByRole('heading', {name: 'Review queue'})).toBeVisible();
+  const allFilter = page.getByRole('button', {name: 'All', exact: true});
+  await allFilter.click();
+  await expect(allFilter).toHaveAttribute('aria-pressed', 'true');
+  await page.reload();
+  await expect(page.getByRole('button', {name: 'All', exact: true})).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBeLessThanOrEqual(390);
+  await expect(page.getByText('Your pull requests', {exact: true})).toBeVisible();
   await context.close();
 });

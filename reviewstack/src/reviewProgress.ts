@@ -13,6 +13,44 @@ function progressKey(kind: 'file' | 'commit', id: string): string {
 const FILES_PREFIX = 'reviewstack.commit-files.v1';
 const STATS_PREFIX = 'reviewstack.commit-stats.v1';
 
+export type ReviewSession = {
+  pathname: string;
+  viewed: number;
+  total: number;
+};
+
+/** Summarize locally recorded file-review progress by pull request. */
+export function getReviewSessions(): ReviewSession[] {
+  const sessions = new Map<string, ReviewSession>();
+  for (let index = 0; index < localStorage.length; index++) {
+    const key = localStorage.key(index);
+    if (key == null || !key.startsWith(`${FILES_PREFIX}:`)) {
+      continue;
+    }
+    const separator = key.lastIndexOf(':');
+    const pathname = key.slice(FILES_PREFIX.length + 1, separator);
+    const commitID = key.slice(separator + 1);
+    if (!/^\/[^/]+\/[^/]+\/pull\/\d+$/.test(pathname) || commitID.length === 0) {
+      continue;
+    }
+    try {
+      const paths = JSON.parse(localStorage.getItem(key) ?? 'null') as string[] | null;
+      if (!Array.isArray(paths)) {
+        continue;
+      }
+      const session = sessions.get(pathname) ?? {pathname, viewed: 0, total: 0};
+      session.total += paths.length;
+      session.viewed += paths.filter(path =>
+        localStorage.getItem(`${PREFIX}:${pathname}:file:${commitID}:${path}`),
+      ).length;
+      sessions.set(pathname, session);
+    } catch {
+      // Ignore malformed or obsolete local progress entries.
+    }
+  }
+  return [...sessions.values()].filter(({total}) => total > 0);
+}
+
 function metadataKey(prefix: string, commitID: string): string {
   return `${prefix}:${window.location.pathname}:${commitID}`;
 }
