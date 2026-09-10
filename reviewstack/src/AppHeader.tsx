@@ -14,7 +14,7 @@ import URLFor from './URLFor';
 import Username from './Username';
 import {APP_HEADER_HEIGHT} from './constants';
 import {primerColorModeAtom} from './jotai/atoms';
-import {HomeIcon, MoonIcon, SunIcon} from '@primer/octicons-react';
+import {HomeIcon, MarkGithubIcon, MoonIcon, SunIcon} from '@primer/octicons-react';
 import {Box, Header, IconButton, Text} from '@primer/react';
 import {useAtom} from 'jotai';
 import {useCallback} from 'react';
@@ -44,6 +44,16 @@ export default function AppHeader({orgAndRepo}: Props): React.ReactElement {
       </Header.Item>
       <Header.Item>
         <Box className="reviewstack-app-header-account">
+          <IconButton
+            as="a"
+            href="https://github.com/tritao/ReviewStack"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="ReviewStack on GitHub"
+            title="ReviewStack on GitHub"
+            icon={MarkGithubIcon}
+            variant="invisible"
+          />
           <ThemeSelector />
           <Username />
         </Box>

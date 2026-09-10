@@ -89,6 +89,9 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
     }
   });
   await page.goto(new URL('tritao/ReviewStack/pull/1', baseURL).toString());
+  const repositoryLink = page.getByRole('link', {name: 'ReviewStack on GitHub'});
+  await expect(repositoryLink).toHaveAttribute('href', 'https://github.com/tritao/ReviewStack');
+  await expect(repositoryLink).toHaveAttribute('target', '_blank');
   // The workflow token is read-only, so these are field labels in CI and
   // action buttons for maintainers with write permission.
   await expect(page.getByText('Reviewers', {exact: true}).first()).toBeVisible();
