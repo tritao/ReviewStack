@@ -1,4 +1,7 @@
 .reviewstack-app-header {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 420px) minmax(0, 1fr);
+  gap: 16px;
   box-sizing: border-box;
   min-width: 0;
   overflow: hidden;
@@ -6,6 +9,35 @@
 
 .reviewstack-app-header > * {
   min-width: 0;
+  margin: 0 !important;
+}
+
+.reviewstack-app-header-context,
+.reviewstack-app-header-actions,
+.reviewstack-app-brand-content,
+.reviewstack-repository-context {
+  display: flex;
+  align-items: center;
+}
+
+.reviewstack-app-header-context {
+  overflow: hidden;
+  gap: 10px;
+}
+
+.reviewstack-app-brand-content,
+.reviewstack-repository-context {
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.reviewstack-app-brand a,
+.reviewstack-app-header-repository a {
+  text-decoration: none;
+}
+
+.reviewstack-app-header-separator {
+  opacity: 0.55;
 }
 
 .reviewstack-app-header-repository {
@@ -15,20 +47,93 @@
   white-space: nowrap;
 }
 
-.reviewstack-app-header-account {
-  display: flex;
-  align-items: center;
+.reviewstack-repository-context {
   min-width: 0;
+}
+
+.reviewstack-repository-context span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reviewstack-app-header-search {
+  width: 100%;
+}
+
+.reviewstack-header-search-form {
+  width: 100%;
+}
+
+.reviewstack-header-search-form input {
+  color: var(--fgColor-onEmphasis, #ffffff);
+  background: rgb(255 255 255 / 12%);
+  border-color: rgb(255 255 255 / 28%);
+}
+
+.reviewstack-header-search-form input::placeholder {
+  color: rgb(255 255 255 / 72%);
+}
+
+.reviewstack-header-search-mobile {
+  display: none;
+}
+
+.reviewstack-header-search-overlay {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+}
+
+.reviewstack-app-header-actions {
+  justify-content: flex-end;
   gap: 4px;
   white-space: nowrap;
 }
 
-@media (max-width: 600px) {
+.reviewstack-account-button {
+  min-width: 36px !important;
+  padding-inline: 6px !important;
+}
+
+.reviewstack-account-button img {
+  display: block;
+}
+
+@media (max-width: 800px) {
   .reviewstack-app-header {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 6px;
     padding-inline: 12px !important;
   }
 
-  .reviewstack-app-header-account button {
+  .reviewstack-header-search-form {
+    display: none;
+  }
+
+  .reviewstack-header-search-mobile {
+    display: block;
+  }
+
+  .reviewstack-app-header-actions button,
+  .reviewstack-app-header-actions a {
     padding-inline: 8px;
+  }
+}
+
+@media (max-width: 560px) {
+  .reviewstack-app-brand-content span,
+  .reviewstack-app-header-separator,
+  .reviewstack-repository-context svg {
+    display: none;
+  }
+
+  .reviewstack-app-header-context {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 420px) {
+  .reviewstack-app-header-actions > a {
+    display: none;
   }
 }

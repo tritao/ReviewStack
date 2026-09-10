@@ -6,8 +6,6 @@
  */
 
 import type {HomePagePullRequestFragment, UserHomePageQueryData} from './generated/graphql';
-import type {FormEvent} from 'react';
-
 import './UserHomePage.css';
 
 import ActorAvatar from './ActorAvatar';
@@ -17,8 +15,6 @@ import TrustedRenderedMarkdown from './TrustedRenderedMarkdown';
 import {MergeableState, PullRequestReviewDecision, StatusState} from './generated/graphql';
 import {gitHubUserHomePageDataAtom} from './jotai/atoms';
 import {getReviewSessions} from './reviewProgress';
-import {parseReviewTarget} from './reviewTarget';
-import useNavigate from './useNavigate';
 import {formatISODate} from './utils';
 import {
   AlertIcon,
@@ -27,10 +23,9 @@ import {
   CommentIcon,
   GitPullRequestIcon,
   PencilIcon,
-  SearchIcon,
   XCircleIcon,
 } from '@primer/octicons-react';
-import {Box, Button, Heading, IssueLabelToken, Label, Text, TextInput} from '@primer/react';
+import {Box, Button, Heading, IssueLabelToken, Label, Text} from '@primer/react';
 import {useAtomValue} from 'jotai';
 import {Suspense, useMemo, useState} from 'react';
 import {notEmpty} from 'shared/utils';
@@ -41,7 +36,6 @@ type QueueFilter = 'attention' | 'ready' | 'blocked' | 'draft' | 'all';
 export default function UserHomePage(): React.ReactElement {
   return (
     <Box className="reviewstack-home">
-      <QuickOpen />
       <Suspense fallback={<CenteredSpinner message="Loading your review queue…" />}>
         <UserHomePageRoot />
       </Suspense>
@@ -63,33 +57,6 @@ function UserHomePageRoot(): React.ReactElement {
       <PullRequestsForUser pullRequests={ownPullRequests} />
       <RepositoriesForUser repos={data?.viewer.repositories.nodes ?? []} />
     </>
-  );
-}
-
-function QuickOpen(): React.ReactElement {
-  const navigate = useNavigate();
-  const [value, setValue] = useState('');
-  const target = parseReviewTarget(value);
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (target != null) {
-      navigate(target);
-    }
-  };
-  return (
-    <Box as="form" className="reviewstack-quick-open" onSubmit={submit}>
-      <TextInput
-        block
-        leadingVisual={SearchIcon}
-        aria-label="GitHub pull request or repository"
-        placeholder="Paste a GitHub PR URL or enter owner/repository#123"
-        value={value}
-        onChange={event => setValue(event.target.value)}
-      />
-      <Button type="submit" variant="primary" disabled={target == null}>
-        Open review
-      </Button>
-    </Box>
   );
 }
 

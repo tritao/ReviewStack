@@ -92,6 +92,16 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   const repositoryLink = page.getByRole('link', {name: 'ReviewStack on GitHub'});
   await expect(repositoryLink).toHaveAttribute('href', 'https://github.com/tritao/ReviewStack');
   await expect(repositoryLink).toHaveAttribute('target', '_blank');
+  await expect(page.getByLabel('Quick open a GitHub pull request or repository')).toBeVisible();
+  const accountMenu = page.getByRole('button', {name: /^Account menu/});
+  await expect(accountMenu.locator('img')).toBeVisible();
+  await accountMenu.click();
+  await expect(page.getByText(/^Signed in as /)).toBeVisible();
+  await expect(page.getByRole('menuitem', {name: 'Dashboard'})).toBeVisible();
+  await expect(page.getByRole('menuitem', {name: 'GitHub profile'})).toBeVisible();
+  await expect(page.getByRole('menuitem', {name: /Use (light|dark) theme/})).toBeVisible();
+  await expect(page.getByRole('menuitem', {name: 'Log out'})).toBeVisible();
+  await page.keyboard.press('Escape');
   // The workflow token is read-only, so these are field labels in CI and
   // action buttons for maintainers with write permission.
   await expect(page.getByText('Reviewers', {exact: true}).first()).toBeVisible();
@@ -284,6 +294,7 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   expect(reactWarnings).toEqual([]);
 
   await page.setViewportSize({width: 390, height: 844});
+  await expect(page.getByRole('button', {name: 'Quick open'})).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);

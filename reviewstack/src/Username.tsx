@@ -7,70 +7,96 @@
 
 import type {GitHubTokenState} from './jotai';
 
-import {gitHubTokenPersistenceAtom, gitHubTokenStateAtom, gitHubUsernameAtom} from './jotai';
-import {SignOutIcon} from '@primer/octicons-react';
-import {ActionList, ActionMenu} from '@primer/react';
-import {useAtomValue, useSetAtom} from 'jotai';
+import {
+  gitHubHostnameAtom,
+  gitHubTokenPersistenceAtom,
+  gitHubTokenStateAtom,
+  gitHubViewerAtom,
+  primerColorModeAtom,
+} from './jotai';
+import useNavigate from './useNavigate';
+import {HomeIcon, MarkGithubIcon, MoonIcon, SignOutIcon, SunIcon} from '@primer/octicons-react';
+import {ActionList, ActionMenu, Avatar, Button, Text} from '@primer/react';
+import {useAtom, useAtomValue, useSetAtom} from 'jotai';
 import {loadable} from 'jotai/utils';
 import {useCallback, useMemo} from 'react';
 
-/**
- * Get the token value from the token state.
- */
 function getTokenValue(state: GitHubTokenState): string | null {
-  if (state.state === 'hasValue') {
-    return state.value;
-  }
-  return null;
+  return state.state === 'hasValue' ? state.value : null;
 }
 
 export default function Username(): React.ReactElement | null {
-  // Get username via loadable to handle async state
-  const loadableUsernameAtom = useMemo(() => loadable(gitHubUsernameAtom), []);
-  const usernameLoadable = useAtomValue(loadableUsernameAtom);
-  const username = usernameLoadable.state === 'hasData' ? usernameLoadable.data : null;
-
-  // Get token state directly for checking current value
+  const loadableViewerAtom = useMemo(() => loadable(gitHubViewerAtom), []);
+  const viewerLoadable = useAtomValue(loadableViewerAtom);
+  const viewer = viewerLoadable.state === 'hasData' ? viewerLoadable.data : null;
+  const hostname = useAtomValue(gitHubHostnameAtom);
   const tokenState = useAtomValue(gitHubTokenStateAtom);
   const token = getTokenValue(tokenState);
-
   const setToken = useSetAtom(gitHubTokenPersistenceAtom);
+  const navigate = useNavigate();
+  const [colorMode, setColorMode] = useAtom(primerColorModeAtom);
   const onLogout = useCallback(() => setToken(null), [setToken]);
 
-  // Show UI when we have a token (regardless of loading state)
-  if (tokenState.state === 'hasValue' && token != null) {
-    if (username != null) {
-      return (
-        <ActionMenu>
-          <ActionMenu.Button aria-label={`Account menu for ${username}`}>
-            {username}
-          </ActionMenu.Button>
-          <ActionMenu.Overlay align="end">
-            <ActionList>
-              <ActionList.Item onSelect={onLogout}>
-                <ActionList.LeadingVisual>
-                  <SignOutIcon />
-                </ActionList.LeadingVisual>
-                Log out
-              </ActionList.Item>
-            </ActionList>
-          </ActionMenu.Overlay>
-        </ActionMenu>
-      );
-    } else {
-      // we have a token but no username: we still offer the logout button
-      return (
-        <ActionMenu>
-          <ActionMenu.Button aria-label="Account menu">Account</ActionMenu.Button>
-          <ActionMenu.Overlay align="end">
-            <ActionList>
-              <ActionList.Item onSelect={onLogout}>Log out</ActionList.Item>
-            </ActionList>
-          </ActionMenu.Overlay>
-        </ActionMenu>
-      );
-    }
+  if (tokenState.state !== 'hasValue' || token == null) {
+    return null;
   }
 
-  return null;
+  const username = viewer?.login;
+  const dark = colorMode === 'night';
+  return (
+    <ActionMenu>
+      <ActionMenu.Anchor>
+        <Button
+          className="reviewstack-account-button"
+          variant="invisible"
+          aria-label={username == null ? 'Account menu' : `Account menu for ${username}`}>
+          {viewer?.avatarUrl != null ? (
+            <Avatar src={viewer.avatarUrl} alt="" size={24} />
+          ) : (
+            <MarkGithubIcon size={24} />
+          )}
+        </Button>
+      </ActionMenu.Anchor>
+      <ActionMenu.Overlay align="end" width="small">
+        <ActionList>
+          {username != null && (
+            <ActionList.Group>
+              <ActionList.GroupHeading>
+                Signed in as <Text fontWeight="bold">{username}</Text>
+              </ActionList.GroupHeading>
+            </ActionList.Group>
+          )}
+          <ActionList.Item onSelect={() => navigate('/')}>
+            <ActionList.LeadingVisual>
+              <HomeIcon />
+            </ActionList.LeadingVisual>
+            Dashboard
+          </ActionList.Item>
+          {username != null && (
+            <ActionList.Item
+              as="a"
+              href={`https://${hostname}/${username}`}
+              target="_blank"
+              rel="noopener noreferrer">
+              <ActionList.LeadingVisual>
+                <MarkGithubIcon />
+              </ActionList.LeadingVisual>
+              GitHub profile
+            </ActionList.Item>
+          )}
+          <ActionList.Item onSelect={() => setColorMode(dark ? 'day' : 'night')}>
+            <ActionList.LeadingVisual>{dark ? <SunIcon /> : <MoonIcon />}</ActionList.LeadingVisual>
+            {dark ? 'Use light theme' : 'Use dark theme'}
+          </ActionList.Item>
+          <ActionList.Divider />
+          <ActionList.Item variant="danger" onSelect={onLogout}>
+            <ActionList.LeadingVisual>
+              <SignOutIcon />
+            </ActionList.LeadingVisual>
+            Log out
+          </ActionList.Item>
+        </ActionList>
+      </ActionMenu.Overlay>
+    </ActionMenu>
+  );
 }

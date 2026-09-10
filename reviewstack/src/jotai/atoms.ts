@@ -295,12 +295,16 @@ function deriveLocalStoragePropForUsername(token: string): string {
   return `username.${token}`;
 }
 
+function deriveLocalStoragePropForViewer(token: string): string {
+  return `viewer.${token}`;
+}
+
 /**
  *
  * Fetches the GitHub username for the current token.
  * Caches the username in localStorage to avoid repeated API calls.
  */
-export const gitHubUsernameAtom = atom<Promise<string | null>>(async get => {
+export const gitHubViewerAtom = atom<Promise<UsernameQueryData['viewer'] | null>>(async get => {
   const tokenState = get(gitHubTokenStateAtom);
   let token: string | null = null;
 
@@ -316,10 +320,16 @@ export const gitHubUsernameAtom = atom<Promise<string | null>>(async get => {
     return null;
   }
 
-  const key = deriveLocalStoragePropForUsername(token);
-  const cachedUsername = localStorage.getItem(key);
-  if (cachedUsername != null) {
-    return cachedUsername;
+  const viewerKey = deriveLocalStoragePropForViewer(token);
+  try {
+    const cachedViewer = JSON.parse(localStorage.getItem(viewerKey) ?? 'null') as
+      | UsernameQueryData['viewer']
+      | null;
+    if (cachedViewer?.login != null && cachedViewer.avatarUrl != null) {
+      return cachedViewer;
+    }
+  } catch {
+    localStorage.removeItem(viewerKey);
   }
 
   const graphQLEndpoint = get(gitHubGraphQLEndpointAtom);
@@ -329,9 +339,13 @@ export const gitHubUsernameAtom = atom<Promise<string | null>>(async get => {
     createRequestHeaders(token),
     graphQLEndpoint,
   );
-  const username = data.viewer.login;
-  localStorage.setItem(key, username);
-  return username;
+  localStorage.setItem(deriveLocalStoragePropForUsername(token), data.viewer.login);
+  localStorage.setItem(viewerKey, JSON.stringify(data.viewer));
+  return data.viewer;
+});
+
+export const gitHubUsernameAtom = atom<Promise<string | null>>(async get => {
+  return (await get(gitHubViewerAtom))?.login ?? null;
 });
 
 // =============================================================================

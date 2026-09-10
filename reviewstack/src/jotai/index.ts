@@ -21,6 +21,7 @@ export {
   isConsumerGitHubAtom,
   gitHubGraphQLEndpointAtom,
   gitHubUsernameAtom,
+  gitHubViewerAtom,
   gitHubOrgAndRepoAtom,
   gitHubClientAtom,
   gitHubPullRequestRefreshTriggerAtom,
