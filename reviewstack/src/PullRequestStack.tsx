@@ -108,7 +108,7 @@ export default function PullRequestStack(): React.ReactElement | null {
   return (
     <ButtonGroup>
       <ActionMenu>
-        <ActionMenu.Button sx={{display: 'inline-block'}}>
+        <ActionMenu.Button>
           Pull Request {total - index} of {total}
         </ActionMenu.Button>
         <ActionMenu.Overlay width="xxlarge">

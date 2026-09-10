@@ -118,6 +118,45 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   await page.getByRole('button', {name: 'Reviewed → next'}).click();
   await expect.poll(() => page.url()).not.toBe(firstCommitURL);
   await expect(page.getByText('1 of 2 reviewed')).toBeVisible();
+  const stackSelector = page.getByRole('button', {name: /^Pull Request \d+ of \d+$/});
+  await expect(stackSelector).toBeVisible();
+  await expect
+    .poll(() =>
+      stackSelector.evaluate(button => {
+        const icon = button.querySelector('[data-component="trailingIcon"]');
+        if (icon == null) return false;
+        const buttonRect = button.getBoundingClientRect();
+        const iconRect = icon.getBoundingClientRect();
+        return (
+          iconRect.top >= buttonRect.top &&
+          iconRect.bottom <= buttonRect.bottom &&
+          iconRect.left >= buttonRect.left &&
+          iconRect.right <= buttonRect.right
+        );
+      }),
+    )
+    .toBe(true);
+  const reviewRail = page.locator('.drawer-right .drawer-label');
+  await expect(reviewRail).toBeVisible();
+  await expect
+    .poll(() =>
+      reviewRail.evaluate(label => {
+        const labelRect = label.getBoundingClientRect();
+        return (
+          labelRect.width >= 32 &&
+          [...label.children].every(child => {
+            const childRect = child.getBoundingClientRect();
+            return (
+              childRect.top >= labelRect.top - 1 &&
+              childRect.bottom <= labelRect.bottom + 1 &&
+              childRect.left >= labelRect.left - 1 &&
+              childRect.right <= labelRect.right + 1
+            );
+          })
+        );
+      }),
+    )
+    .toBe(true);
   expect(errors).toEqual([]);
   expect(reactWarnings).toEqual([]);
 

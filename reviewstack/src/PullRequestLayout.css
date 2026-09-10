@@ -6,7 +6,9 @@
  */
 
 .reviewstack .drawers {
-  --drawer-label-size: 14px;
+  --halfpad: 4px;
+  --pad: 8px;
+  --drawer-label-size: 32px;
 }
 
 .reviewstack-pr-layout {
@@ -25,8 +27,8 @@
   height: 100%;
 }
 
-.reviewstack .drawer-label-text {
-  margin-left: 10px;
+.reviewstack .drawer-label {
+  box-sizing: border-box;
 }
 
 .reviewstack .drawer-left > div:nth-child(3),
@@ -42,10 +44,6 @@
 
   .reviewstack .drawers {
     --drawer-label-size: 45px;
-  }
-
-  .reviewstack .drawer-bottom .drawer-label-text {
-    margin-left: 0;
   }
 
   .reviewstack .drawer-bottom > div:nth-child(3) {
