@@ -50,7 +50,7 @@ export default function CommitReviewRail(): React.ReactElement {
     updateReviewURL({mode: 'commit', commitID});
   };
   const nextUnreviewed = reviewableCommits.find(
-    commit => !isReviewProgressComplete('commit', commit.commit),
+    commit => commit.commit !== selected && !isReviewProgressComplete('commit', commit.commit),
   );
   const fileProgress = reviewableCommits.map(commit => getCommitFileProgress(commit.commit));
   const unviewedFiles = fileProgress.reduce(
@@ -131,14 +131,11 @@ export default function CommitReviewRail(): React.ReactElement {
           incompleteChecks={incompleteChecks}
           rewrittenCommits={rewrittenTitles.length}
         />
-      ) : (
-        <Button
-          block
-          disabled={nextUnreviewed == null}
-          onClick={() => nextUnreviewed && select(nextUnreviewed.commit)}>
+      ) : nextUnreviewed != null ? (
+        <Button block onClick={() => select(nextUnreviewed.commit)}>
           Next unreviewed
         </Button>
-      )}
+      ) : null}
     </Box>
   );
 
@@ -210,10 +207,12 @@ function CommitRailItem({
         onClick={onSelect}
         aria-current={current ? 'step' : undefined}>
         {reviewed ? <CheckCircleFillIcon fill="var(--fgColor-open, #1a7f37)" /> : <CircleIcon />}
-        <span>
-          <Text fontWeight={current ? 'bold' : 'normal'}>{index + 1}. </Text>
-          <Text className="commit-review-rail-title">{commit.title}</Text>
-          <Text as="div" color="fg.muted" fontSize={0}>
+        <span className="commit-review-rail-content">
+          <span className="commit-review-rail-heading">
+            <Text fontWeight={current ? 'bold' : 'normal'}>{index + 1}.</Text>
+            <Text className="commit-review-rail-title">{commit.title}</Text>
+          </span>
+          <Text as="div" className="commit-review-rail-metadata" color="fg.muted" fontSize={0}>
             {shortOid(commit.commit)} · {new Date(commit.committedDate).toLocaleDateString()}
             {commit.author != null ? ` · ${commit.author}` : ''}
             {commit.parents.length > 1 ? ' · merge' : ''}

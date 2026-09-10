@@ -13,11 +13,24 @@
 }
 
 .commit-review-rail-item {
+  box-sizing: border-box;
+  overflow: hidden;
   width: 100%;
   border: 1px solid transparent;
   border-radius: 6px;
   color: inherit;
   background: transparent;
+}
+
+.commit-review-rail-content {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.commit-review-rail-heading {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
 }
 
 .commit-review-rail-item-main {
@@ -43,6 +56,14 @@
 }
 
 .commit-review-rail-title {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commit-review-rail-metadata {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
