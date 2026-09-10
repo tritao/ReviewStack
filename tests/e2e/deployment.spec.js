@@ -103,6 +103,10 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
   await expect(page.getByRole('heading', {name: 'Commit review'})).toBeVisible();
   await expect(page.getByText('0 of 2 reviewed')).toBeVisible();
   const firstCommitURL = page.url();
+  await page
+    .getByLabel(/Mark .* as viewed/)
+    .first()
+    .check();
   await page.getByRole('button', {name: 'Reviewed → next'}).click();
   await expect.poll(() => page.url()).not.toBe(firstCommitURL);
   await expect(page.getByText('1 of 2 reviewed')).toBeVisible();

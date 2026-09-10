@@ -5,7 +5,54 @@ const PREFIX = 'reviewstack.reviewed.v1';
 const PROGRESS_EVENT = 'reviewstack-review-progress';
 
 function progressKey(kind: 'file' | 'commit', id: string): string {
-  return `${PREFIX}:${window.location.pathname}:${kind}:${id}`;
+  const commitScope =
+    kind === 'file' ? new URLSearchParams(window.location.search).get('commit') ?? 'layer' : '';
+  return `${PREFIX}:${window.location.pathname}:${kind}:${commitScope}:${id}`;
+}
+
+const FILES_PREFIX = 'reviewstack.commit-files.v1';
+const STATS_PREFIX = 'reviewstack.commit-stats.v1';
+
+function metadataKey(prefix: string, commitID: string): string {
+  return `${prefix}:${window.location.pathname}:${commitID}`;
+}
+
+export function recordCommitFiles(commitID: string, paths: string[]): void {
+  localStorage.setItem(metadataKey(FILES_PREFIX, commitID), JSON.stringify([...new Set(paths)]));
+  window.dispatchEvent(new CustomEvent(PROGRESS_EVENT));
+}
+
+export function getCommitFileProgress(commitID: string): {viewed: number; total: number} | null {
+  try {
+    const paths = JSON.parse(
+      localStorage.getItem(metadataKey(FILES_PREFIX, commitID)) ?? 'null',
+    ) as string[] | null;
+    return paths == null
+      ? null
+      : {
+          total: paths.length,
+          viewed: paths.filter(path =>
+            localStorage.getItem(`${PREFIX}:${window.location.pathname}:file:${commitID}:${path}`),
+          ).length,
+        };
+  } catch {
+    return null;
+  }
+}
+
+export type CommitReviewStats = {additions: number; deletions: number; files: number};
+
+export function recordCommitStats(commitID: string, stats: CommitReviewStats): void {
+  localStorage.setItem(metadataKey(STATS_PREFIX, commitID), JSON.stringify(stats));
+  window.dispatchEvent(new CustomEvent(PROGRESS_EVENT));
+}
+
+export function getCommitStats(commitID: string): CommitReviewStats | null {
+  try {
+    return JSON.parse(localStorage.getItem(metadataKey(STATS_PREFIX, commitID)) ?? 'null');
+  } catch {
+    return null;
+  }
 }
 
 export function isReviewProgressComplete(kind: 'file' | 'commit', id: string): boolean {

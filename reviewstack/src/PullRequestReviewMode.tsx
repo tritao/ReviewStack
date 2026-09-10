@@ -11,14 +11,19 @@ import {
   gitHubPullRequestReviewTargetAtom,
   gitHubPullRequestSelectedVersionCommitsAtom,
   gitHubPullRequestSelectedVersionIndexAtom,
+  gitHubPullRequestVersionDiffAtom,
   gitHubPullRequestVersionsAtom,
 } from './jotai';
-import {isReviewProgressComplete, setReviewProgressComplete} from './reviewProgress';
+import {
+  isReviewProgressComplete,
+  setReviewProgressComplete,
+  useReviewProgressVersion,
+} from './reviewProgress';
 import {updateReviewURL} from './reviewURL';
 import {shortOid} from './utils';
 import {ActionList, ActionMenu, Button, ButtonGroup} from '@primer/react';
 import {useAtom, useAtomValue, useSetAtom} from 'jotai';
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
 
 export default function PullRequestReviewMode(): React.ReactElement {
   const commits = useAtomValue(gitHubPullRequestSelectedVersionCommitsAtom);
@@ -26,6 +31,9 @@ export default function PullRequestReviewMode(): React.ReactElement {
   const selectedVersionIndex = useAtomValue(gitHubPullRequestSelectedVersionIndexAtom);
   const [target, setTarget] = useAtom(gitHubPullRequestReviewTargetAtom);
   const setComparableVersions = useSetAtom(gitHubPullRequestComparableVersionsAtom);
+  const diff = useAtomValue(gitHubPullRequestVersionDiffAtom);
+  useReviewProgressVersion();
+  const [showUnviewedWarning, setShowUnviewedWarning] = useState(false);
   const selectedIndex =
     target.type === 'commit' ? commits.findIndex(commit => commit.commit === target.commitID) : -1;
 
@@ -51,24 +59,42 @@ export default function PullRequestReviewMode(): React.ReactElement {
     }
   };
   const firstUnreviewedIndex = commits.findIndex(
-    commit => !isReviewProgressComplete('commit', commit.commit),
+    commit => commit.parents.length <= 1 && !isReviewProgressComplete('commit', commit.commit),
   );
-  const markReviewedAndContinue = () => {
+  const previousReviewableIndex = findPreviousReviewableIndex(commits, selectedIndex);
+  const nextReviewableIndex = commits.findIndex(
+    (commit, index) => index > selectedIndex && commit.parents.length <= 1,
+  );
+  const changedPaths =
+    diff?.diff.map(change => {
+      const entry = change.type === 'modify' ? change.after : change.entry;
+      return [change.basePath, entry.name].filter(Boolean).join('/');
+    }) ?? [];
+  const unviewedFiles = changedPaths.filter(path => !isReviewProgressComplete('file', path));
+  useEffect(() => setShowUnviewedWarning(false), [selectedIndex]);
+
+  const markReviewedAndContinue = (force = false) => {
     const commit = commits[selectedIndex];
     if (commit == null) {
+      return;
+    }
+    if (!force && unviewedFiles.length > 0) {
+      setShowUnviewedWarning(true);
       return;
     }
     setReviewProgressComplete('commit', commit.commit, true);
     const nextIndex = commits.findIndex(
       (candidate, index) =>
-        index > selectedIndex && !isReviewProgressComplete('commit', candidate.commit),
+        index > selectedIndex &&
+        candidate.parents.length <= 1 &&
+        !isReviewProgressComplete('commit', candidate.commit),
     );
     if (nextIndex !== -1) {
       selectCommit(nextIndex);
     }
   };
-  useCommand('PreviousCommit', () => selectCommit(selectedIndex - 1));
-  useCommand('NextCommit', () => selectCommit(selectedIndex + 1));
+  useCommand('PreviousCommit', () => selectCommit(previousReviewableIndex));
+  useCommand('NextCommit', () => selectCommit(nextReviewableIndex));
 
   return (
     <>
@@ -99,8 +125,8 @@ export default function PullRequestReviewMode(): React.ReactElement {
         <>
           <Button
             title="Previous commit (Alt+Up)"
-            disabled={selectedIndex <= 0}
-            onClick={() => selectCommit(selectedIndex - 1)}>
+            disabled={previousReviewableIndex === -1}
+            onClick={() => selectCommit(previousReviewableIndex)}>
             Previous
           </Button>
           <ActionMenu>
@@ -122,15 +148,36 @@ export default function PullRequestReviewMode(): React.ReactElement {
           </ActionMenu>
           <Button
             title="Next commit (Alt+Down)"
-            disabled={selectedIndex === -1 || selectedIndex >= commits.length - 1}
-            onClick={() => selectCommit(selectedIndex + 1)}>
+            disabled={nextReviewableIndex === -1}
+            onClick={() => selectCommit(nextReviewableIndex)}>
             Next
           </Button>
-          <Button variant="primary" onClick={markReviewedAndContinue}>
-            Reviewed → next
-          </Button>
+          {showUnviewedWarning ? (
+            <>
+              <Button disabled>{unviewedFiles.length} files unviewed</Button>
+              <Button variant="danger" onClick={() => markReviewedAndContinue(true)}>
+                Mark anyway
+              </Button>
+            </>
+          ) : (
+            <Button variant="primary" onClick={() => markReviewedAndContinue()}>
+              Reviewed → next
+            </Button>
+          )}
         </>
       )}
     </>
   );
+}
+
+function findPreviousReviewableIndex(
+  commits: ReadonlyArray<{parents: string[]}>,
+  selectedIndex: number,
+): number {
+  for (let index = selectedIndex - 1; index >= 0; index--) {
+    if (commits[index].parents.length <= 1) {
+      return index;
+    }
+  }
+  return -1;
 }

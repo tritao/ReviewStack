@@ -27,6 +27,7 @@ import {
   pendingScrollRestoreAtom,
   stackedPullRequestAtom,
 } from './jotai';
+import {recordCommitFiles} from './reviewProgress';
 import {stripStackInfoFromSaplingBodyHTML} from './saplingStack';
 import {Box, Text} from '@primer/react';
 import {useAtomValue, useSetAtom} from 'jotai';
@@ -213,6 +214,19 @@ function PullRequestDetails() {
 
 function PullRequestVersionDiff() {
   const diff = useAtomValue(gitHubPullRequestVersionDiffAtom);
+  const reviewTarget = useAtomValue(gitHubPullRequestReviewTargetAtom);
+
+  useEffect(() => {
+    if (diff != null && reviewTarget.type === 'commit') {
+      recordCommitFiles(
+        reviewTarget.commitID,
+        diff.diff.map(change => {
+          const entry = change.type === 'modify' ? change.after : change.entry;
+          return [change.basePath, entry.name].filter(Boolean).join('/');
+        }),
+      );
+    }
+  }, [diff, reviewTarget]);
 
   if (diff != null) {
     return (

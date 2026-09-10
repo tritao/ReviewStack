@@ -6,16 +6,32 @@
  */
 
 import UnauthorizedError from './github/UnauthorizedError';
-import {gitHubPullRequestVersionDiffAtom, gitHubPullRequestVersionDiffStatsAtom} from './jotai';
+import {
+  gitHubPullRequestReviewTargetAtom,
+  gitHubPullRequestVersionDiffAtom,
+  gitHubPullRequestVersionDiffStatsAtom,
+} from './jotai';
+import {recordCommitStats} from './reviewProgress';
 import {CounterLabel, Text} from '@primer/react';
 import {useAtomValue} from 'jotai';
 import {loadable} from 'jotai/utils';
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 
 export default function PullRequestChangeCount(): React.ReactElement | null {
   const diff = useAtomValue(gitHubPullRequestVersionDiffAtom);
   const loadableStatsAtom = useMemo(() => loadable(gitHubPullRequestVersionDiffStatsAtom), []);
   const statsLoadable = useAtomValue(loadableStatsAtom);
+  const reviewTarget = useAtomValue(gitHubPullRequestReviewTargetAtom);
+  const loadedStats = statsLoadable.state === 'hasData' ? statsLoadable.data : null;
+  useEffect(() => {
+    if (reviewTarget.type === 'commit' && loadedStats != null) {
+      recordCommitStats(reviewTarget.commitID, {
+        additions: loadedStats.additions,
+        deletions: loadedStats.deletions,
+        files: diff?.diff.length ?? 0,
+      });
+    }
+  }, [diff?.diff.length, loadedStats, reviewTarget]);
 
   if (statsLoadable.state === 'loading') {
     return (
