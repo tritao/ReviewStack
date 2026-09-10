@@ -164,6 +164,15 @@ test('fixture PR exposes layer and commit review modes', async ({browser, baseUR
       }),
     )
     .toBe(true);
+  await stackSelector.click();
+  const displayedPullRequests = await page
+    .getByRole('menuitemradio')
+    .evaluateAll(items =>
+      items.map(item => Number(item.innerText.match(/#(\d+)/)?.[1])).filter(Number.isFinite),
+    );
+  expect(displayedPullRequests.length).toBeGreaterThan(1);
+  expect(displayedPullRequests).toEqual([...displayedPullRequests].sort((a, b) => a - b));
+  await page.keyboard.press('Escape');
   const reviewRail = page.locator('.drawer-right .drawer-label');
   await expect(reviewRail).toBeVisible();
   await expect

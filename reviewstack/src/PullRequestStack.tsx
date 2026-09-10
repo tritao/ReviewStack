@@ -113,10 +113,10 @@ export default function PullRequestStack(): React.ReactElement | null {
         </ActionMenu.Button>
         <ActionMenu.Overlay width="xxlarge">
           <ActionList selectionVariant="single">
-            {stack.map((pullRequest, stackIndex) => (
+            {[...stack].reverse().map(pullRequest => (
               <PullRequestStackItem
                 key={pullRequest.number}
-                isSelected={index === stackIndex}
+                isSelected={pullRequest.number === pullRequestNumber}
                 {...pullRequest}
               />
             ))}
