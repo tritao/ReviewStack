@@ -22,6 +22,8 @@ import {
 
 const MCP_ENDPOINT = process.env.REACT_APP_MCP_ENDPOINT || DEFAULT_MCP_ENDPOINT;
 
+clearChunkRecoveryParameter();
+
 function CustomLink({
   href,
   style,
@@ -94,3 +96,12 @@ createRoot(rootElement).render(
     </JotaiProvider>
   </React.StrictMode>,
 );
+
+function clearChunkRecoveryParameter(): void {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has('__reviewstack_reload')) {
+    return;
+  }
+  url.searchParams.delete('__reviewstack_reload');
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+}

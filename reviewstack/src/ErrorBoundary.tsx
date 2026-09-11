@@ -13,6 +13,10 @@ import {AlertIcon} from '@primer/octicons-react';
 import {Text, Flash, Box} from '@primer/react';
 import {Component} from 'react';
 
+const CHUNK_RECOVERY_PARAMETER = '__reviewstack_reload';
+const CHUNK_RECOVERY_STORAGE_KEY = 'reviewstack.chunk-recovery';
+const CHUNK_RECOVERY_WINDOW_MS = 60_000;
+
 function ErrorNotice({title, error}: {title: React.ReactNode; error: Error}) {
   return (
     <Flash variant="warning" sx={{margin: 20}}>
@@ -39,6 +43,12 @@ export class ErrorBoundary extends Component<Props, State> {
     return {error};
   }
 
+  componentDidCatch(error: Error) {
+    if (isChunkLoadError(error)) {
+      recoverFromStaleBundle();
+    }
+  }
+
   render() {
     if (this.state.error != null) {
       // For unauthorized errors, clear the token and redirect to login
@@ -52,5 +62,34 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     return this.props.children;
+  }
+}
+
+function isChunkLoadError(error: Error): boolean {
+  return (
+    error.name === 'ChunkLoadError' ||
+    /(?:Loading chunk|Loading CSS chunk) \d+ failed/i.test(error.message)
+  );
+}
+
+function recoverFromStaleBundle(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    const now = Date.now();
+    const previousAttempt = Number(window.sessionStorage.getItem(CHUNK_RECOVERY_STORAGE_KEY));
+    if (Number.isFinite(previousAttempt) && now - previousAttempt < CHUNK_RECOVERY_WINDOW_MS) {
+      return;
+    }
+    window.sessionStorage.setItem(CHUNK_RECOVERY_STORAGE_KEY, String(now));
+
+    const url = new URL(window.location.href);
+    url.searchParams.set(CHUNK_RECOVERY_PARAMETER, String(now));
+    window.location.replace(url.href);
+  } catch {
+    // Storage or navigation can be unavailable in privacy-restricted browsers;
+    // leave the normal error notice available in that case.
   }
 }
