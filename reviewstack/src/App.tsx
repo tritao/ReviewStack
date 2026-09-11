@@ -11,6 +11,7 @@ import {ErrorBoundary} from './ErrorBoundary';
 import GitHubMarkdownStyles from './GitHubMarkdownStyles';
 import {ShortcutCommandContext} from './KeyboardShortcuts';
 import LoginDialog from './LoginDialog';
+import McpSetupPage from './McpSetupPage';
 import NotificationBanner from './NotificationBanner';
 import PrimerStyles from './PrimerStyles';
 import SplitDiffViewPrimerStyles from './SplitDiffViewPrimerStyles';
@@ -33,6 +34,7 @@ const UserHomePage = React.lazy(() => import('./UserHomePage'));
 
 type Page =
   | {type: 'home'}
+  | {type: 'mcp'; endpoint: string}
   | {
       type: 'project';
       org: string;
@@ -81,6 +83,13 @@ export default function App({page}: {page: Page}): React.ReactElement {
 }
 
 function ContentOrLoginDialog({page}: {page: Page}): React.ReactElement {
+  if (page.type === 'mcp') {
+    return <McpSetupPage endpoint={page.endpoint} />;
+  }
+  return <AuthenticatedContent page={page} />;
+}
+
+function AuthenticatedContent({page}: {page: Exclude<Page, {type: 'mcp'}>}): React.ReactElement {
   // Subscribe to the listener atom to set up cross-tab logout handling
   useAtom(gitHubTokenListenerAtom);
 
@@ -146,6 +155,8 @@ const ThemeListener = React.memo(function ThemeListener(): React.ReactElement {
 
 const AppContent = React.memo(({page}: {page: Page}): React.ReactElement => {
   switch (page.type) {
+    case 'mcp':
+      return <McpSetupPage endpoint={page.endpoint} />;
     case 'home':
       return <UserHomePage />;
     case 'project':

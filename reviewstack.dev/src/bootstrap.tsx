@@ -10,6 +10,7 @@ import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {BrowserRouter, Link, Route, Routes, useNavigate, useParams} from 'react-router-dom';
 import {setCustomLoginDialogComponent} from 'reviewstack/src/LoginDialog';
+import {DEFAULT_MCP_ENDPOINT} from 'reviewstack/src/McpSetupPage';
 import {
   App,
   getColorModeFromLocalStorage,
@@ -18,6 +19,8 @@ import {
   setCustomNavigateHook,
   ThemeProvider,
 } from 'reviewstack/src/index';
+
+const MCP_ENDPOINT = process.env.REACT_APP_MCP_ENDPOINT || DEFAULT_MCP_ENDPOINT;
 
 function CustomLink({
   href,
@@ -69,6 +72,7 @@ createRoot(rootElement).render(
         <BrowserRouter basename={process.env.PUBLIC_URL || '/'}>
           <Routes>
             <Route path="/" element={<App page={{type: 'home'}} />} />
+            <Route path="/mcp" element={<App page={{type: 'mcp', endpoint: MCP_ENDPOINT}} />} />
             <Route path="/auth/callback" element={<App page={{type: 'home'}} />} />
             <Route path="/:org/:repo" element={<RepositoryPage type="project" />} />
             <Route path="/:org/:repo/pulls" element={<RepositoryPage type="pulls" />} />

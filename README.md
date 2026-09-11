@@ -208,9 +208,10 @@ The repository contains:
 TextMate grammar artifacts are checked in. Ignored GraphQL types and the
 TextMate WASM runtime are prepared automatically before start, test, and build.
 
-The hosted build restricts API connections to GitHub and the OAuth worker.
-Deployments for GitHub Enterprise must set `REACT_APP_CSP_CONNECT_SRC` to a
-space-separated list containing the Enterprise API and OAuth origins.
+The hosted build restricts API connections to GitHub, the OAuth worker, and the
+MCP worker. Deployments for GitHub Enterprise must set
+`REACT_APP_CSP_CONNECT_SRC` to a space-separated list containing the Enterprise
+API and OAuth origins (and the MCP origin when the setup page is enabled).
 
 ## ChatGPT Web integration
 
@@ -222,7 +223,8 @@ flow, retrieves bounded PR/stack/diff context, and exposes it to ChatGPT;
 there are no GitHub write tools in the initial version.
 
 See [`mcp-worker/README.md`](mcp-worker/README.md) for deployment and ChatGPT
-connection instructions.
+connection instructions, or open the hosted [MCP setup guide](https://tritao.github.io/ReviewStack/mcp)
+for the interactive checklist and worker health status.
 
 The browser smoke test verifies the login and OAuth callback routes. In CI it
 uses the workflow's short-lived, read-only `GITHUB_TOKEN` to exercise the

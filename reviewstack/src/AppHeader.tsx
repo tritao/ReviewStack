@@ -53,6 +53,7 @@ export default function AppHeader({orgAndRepo}: Props): React.ReactElement {
         <HeaderQuickOpen />
       </Header.Item>
       <Header.Item className="reviewstack-app-header-actions">
+        <Link href="/mcp">MCP setup</Link>
         <IconButton
           as="a"
           href="https://github.com/tritao/ReviewStack"

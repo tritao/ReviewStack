@@ -97,6 +97,12 @@ export default function LoginDialog({
                 </Flash>
               </Box>
             ) : null}
+            <Box pb={3}>
+              <Text>
+                Connecting ChatGPT to ReviewStack? See the{' '}
+                <Link href={`${process.env.PUBLIC_URL || ''}/mcp`}>MCP setup guide</Link>.
+              </Text>
+            </Box>
             {oauthConfig != null ? (
               <Box className="LoginDialog-oauth" pb={3}>
                 <Text as="p">Sign in through GitHub to review public repositories.</Text>
