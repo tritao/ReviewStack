@@ -138,6 +138,7 @@ git clone https://github.com/tritao/ReviewStack.git
 cd ReviewStack
 corepack enable
 yarn install --frozen-lockfile
+npm ci --prefix mcp-worker
 yarn start
 ```
 
@@ -210,6 +211,18 @@ TextMate WASM runtime are prepared automatically before start, test, and build.
 The hosted build restricts API connections to GitHub and the OAuth worker.
 Deployments for GitHub Enterprise must set `REACT_APP_CSP_CONNECT_SRC` to a
 space-separated list containing the Enterprise API and OAuth origins.
+
+## ChatGPT Web integration
+
+The optional `mcp-worker/` service exposes ReviewStack as a read-only MCP app
+for ChatGPT Web. This lets a user sign in to ChatGPT with an existing Plus
+subscription and ask ChatGPT to review a pull request without putting an
+OpenAI API key in ReviewStack. The service performs a separate GitHub OAuth
+flow, retrieves bounded PR/stack/diff context, and exposes it to ChatGPT;
+there are no GitHub write tools in the initial version.
+
+See [`mcp-worker/README.md`](mcp-worker/README.md) for deployment and ChatGPT
+connection instructions.
 
 The browser smoke test verifies the login and OAuth callback routes. In CI it
 uses the workflow's short-lived, read-only `GITHUB_TOKEN` to exercise the

@@ -121,7 +121,7 @@ module.exports = tseslint.config(
     },
   },
   {
-    files: ['oauth-worker/**/*.js'],
+    files: ['oauth-worker/**/*.js', 'mcp-worker/**/*.{js,mjs}'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

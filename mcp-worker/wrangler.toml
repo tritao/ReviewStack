@@ -1,0 +1,25 @@
+name = "reviewstack-mcp"
+main = "src/index.js"
+compatibility_date = "2026-09-11"
+workers_dev = true
+preview_urls = false
+
+[vars]
+# Restrict the worker to the repositories this instance is meant to review.
+MCP_ALLOWED_REPOSITORIES = "FreeCAD/FreeCAD"
+# Optional for a custom domain. If omitted, the request origin is used.
+# MCP_RESOURCE = "https://mcp.example.com"
+# GITHUB_OAUTH_CALLBACK_URL = "https://mcp.example.com/oauth/github/callback"
+
+# The OAuth app credentials must be stored as secrets:
+#   npx wrangler secret put GITHUB_CLIENT_ID
+#   npx wrangler secret put GITHUB_CLIENT_SECRET
+#
+# Bind a KV namespace for OAuth state, authorization codes, access tokens,
+# and per-user GitHub tokens:
+# The CI workflow provisions this binding in a temporary config; only add it
+# here for local/manual deployments.
+#
+# [[kv_namespaces]]
+# binding = "MCP_KV"
+# id = "replace-with-kv-namespace-id"

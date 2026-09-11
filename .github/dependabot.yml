@@ -16,6 +16,14 @@ updates:
       wrangler:
         patterns: ['wrangler']
 
+  - package-ecosystem: npm
+    directory: /mcp-worker
+    schedule:
+      interval: weekly
+    groups:
+      mcp-worker:
+        patterns: ['*']
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

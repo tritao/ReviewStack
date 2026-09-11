@@ -27,6 +27,7 @@ jobs:
           cache-dependency-path: yarn.lock
       - run: corepack enable
       - run: yarn install --frozen-lockfile
+      - run: npm ci --prefix mcp-worker
       - run: yarn lint
       - run: yarn test
         env:
