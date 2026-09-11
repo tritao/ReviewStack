@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 
-import {buildWranglerConfig, ensureKvNamespace, provision} from '../scripts/provision-ci.mjs';
+import {
+  buildWranglerConfig,
+  ensureD1Database,
+  ensureKvNamespace,
+  provision,
+} from '../scripts/provision-ci.mjs';
 
 function makeCloudflareFetch({namespaces = [], createdId = 'new-namespace-id'} = {}) {
   const calls = [];
@@ -80,6 +85,28 @@ test('handles a concurrent namespace creation', async () => {
   assert.deepEqual(result, {id: 'concurrent-id', created: false});
 });
 
+test('reuses an existing named D1 database', async () => {
+  const calls = [];
+  const fetchImpl = async (url, init = {}) => {
+    calls.push({url, init});
+    return Response.json({
+      success: true,
+      result: [{name: 'reviewstack-reviews', uuid: 'existing-d1-id'}],
+      result_info: {page: 1, total_pages: 1},
+    });
+  };
+
+  const result = await ensureD1Database({
+    fetchImpl,
+    accountId: 'account-id',
+    apiToken: 'api-token',
+  });
+
+  assert.deepEqual(result, {id: 'existing-d1-id', name: 'reviewstack-reviews', created: false});
+  assert.match(calls[0].url, /\/accounts\/account-id\/d1\/database/);
+  assert.equal(calls[0].init.headers.Authorization, 'Bearer api-token');
+});
+
 test('writes an ephemeral CI Wrangler config with the OAuth callback', async () => {
   const {fetchImpl} = makeCloudflareFetch();
   const outputPath = `${process.env.RUNNER_TEMP || '/tmp'}/reviewstack-mcp-test.toml`;
@@ -93,6 +120,7 @@ test('writes an ephemeral CI Wrangler config with the OAuth callback', async () 
       REVIEWSTACK_MCP_RESOURCE: 'https://mcp.example.test',
       REVIEWSTACK_MCP_ALLOWED_REPOSITORIES: 'FreeCAD/FreeCAD,FreeCAD/coin',
       REVIEWSTACK_MCP_GITHUB_OAUTH_SCOPE: 'repo read:user',
+      REVIEWSTACK_MCP_D1_NAME: 'reviewstack-reviews',
       GITHUB_OUTPUT: outputFile,
     },
   });
@@ -106,12 +134,18 @@ test('writes an ephemeral CI Wrangler config with the OAuth callback', async () 
     /GITHUB_OAUTH_CALLBACK_URL = "https:\/\/mcp\.example\.test\/oauth\/github\/callback"/,
   );
   assert.match(config, /GITHUB_OAUTH_SCOPE = "repo read:user"/);
+  assert.match(config, /binding = "REVIEWS_DB"/);
+  assert.match(config, /database_name = "reviewstack-reviews"/);
+  assert.match(config, /database_id = "new-namespace-id"/);
   assert.match(config, /id = "new-namespace-id"/);
 });
 
 test('renders TOML safely for values containing quotes', () => {
   const config = buildWranglerConfig({
     kvNamespaceId: 'namespace-id',
+    d1DatabaseId: 'database-id',
+    d1DatabaseName: 'reviewstack-reviews',
+    migrationsDir: '/tmp/reviewstack-migrations',
     allowedRepositories: 'owner/repo',
     resource: 'https://mcp.example.test/?label="review"',
     githubOAuthCallbackUrl: 'https://mcp.example.test/oauth/github/callback',
@@ -119,6 +153,9 @@ test('renders TOML safely for values containing quotes', () => {
 
   assert.match(config, /name = "reviewstack-mcp"/);
   assert.match(config, /binding = "MCP_KV"/);
+  assert.match(config, /binding = "REVIEWS_DB"/);
+  assert.match(config, /database_id = "database-id"/);
+  assert.match(config, /migrations_dir = "\/tmp\/reviewstack-migrations"/);
   assert.match(config, /label=\\"review\\"/);
 });
 

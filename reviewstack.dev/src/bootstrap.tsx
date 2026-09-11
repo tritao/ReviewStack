@@ -56,6 +56,11 @@ function CommitPage() {
   return org && repo && oid ? <App page={{type: 'commit', org, repo, oid}} /> : null;
 }
 
+function SavedReviewsPage() {
+  const {reviewId} = useParams();
+  return <App page={{type: 'reviews', endpoint: MCP_ENDPOINT, reviewId}} />;
+}
+
 setCustomLinkElement(CustomLink);
 setCustomNavigateHook(useNavigate);
 setCustomLoginDialogComponent(LazyLoginDialog);
@@ -73,6 +78,11 @@ createRoot(rootElement).render(
           <Routes>
             <Route path="/" element={<App page={{type: 'home'}} />} />
             <Route path="/mcp" element={<App page={{type: 'mcp', endpoint: MCP_ENDPOINT}} />} />
+            <Route
+              path="/reviews"
+              element={<App page={{type: 'reviews', endpoint: MCP_ENDPOINT}} />}
+            />
+            <Route path="/reviews/:reviewId" element={<SavedReviewsPage />} />
             <Route path="/auth/callback" element={<App page={{type: 'home'}} />} />
             <Route path="/:org/:repo" element={<RepositoryPage type="project" />} />
             <Route path="/:org/:repo/pulls" element={<RepositoryPage type="pulls" />} />

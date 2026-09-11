@@ -79,6 +79,74 @@ export async function authenticateRequest(request, env) {
   };
 }
 
+/**
+ * Authenticate the ReviewStack browser API. The browser already has a GitHub
+ * token from the standalone app, while ChatGPT has a short-lived MCP token.
+ * Accepting both here lets the browser and MCP share one review store without
+ * persisting the browser token in Cloudflare storage.
+ */
+export async function authenticateReviewRequest(request, env, fetchImpl = fetch) {
+  const token = bearerToken(request);
+  if (token == null) {
+    return {response: unauthorizedResponse(request, env)};
+  }
+
+  if (env.MCP_KV != null && typeof env.MCP_KV.get === 'function') {
+    try {
+      const record = await getJson(env, `oauth:access:${token}`);
+      if (
+        record != null &&
+        typeof record.expiresAt === 'number' &&
+        record.expiresAt > Math.floor(Date.now() / 1000) &&
+        record.resource === getResource(request, env) &&
+        record.scope === AUTH_SCOPE
+      ) {
+        const githubRecord = await getJson(env, record.githubTokenKey);
+        if (typeof githubRecord?.accessToken === 'string' && githubRecord.accessToken.length > 0) {
+          return {
+            identity: {
+              subject: record.subject,
+              githubLogin: githubRecord.login ?? null,
+              githubToken: githubRecord.accessToken,
+            },
+          };
+        }
+      }
+    } catch {
+      // A browser request can still authenticate directly with GitHub if the
+      // optional MCP token lookup is unavailable.
+    }
+  }
+
+  try {
+    const profileResponse = await fetchImpl('https://api.github.com/user', {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'ReviewStack-MCP',
+      },
+    });
+    const profile = await profileResponse.json().catch(() => null);
+    if (!profileResponse.ok || !Number.isInteger(profile?.id)) {
+      return {
+        response: unauthorizedResponse(request, env, 'The GitHub access token is invalid.'),
+      };
+    }
+    return {
+      identity: {
+        subject: `github:${profile.id}`,
+        githubLogin: typeof profile.login === 'string' ? profile.login : null,
+        githubToken: token,
+      },
+    };
+  } catch {
+    return {
+      response: unauthorizedResponse(request, env, 'The GitHub account could not be verified.'),
+    };
+  }
+}
+
 export async function handleAuthorize(request, env) {
   const url = new URL(request.url);
   const params = url.searchParams;

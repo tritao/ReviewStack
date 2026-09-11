@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 
 const CLOUDFLARE_API = 'https://api.cloudflare.com/client/v4';
 const DEFAULT_NAMESPACE_TITLE = 'reviewstack-mcp';
+const DEFAULT_DATABASE_NAME = 'reviewstack-reviews';
 const DEFAULT_ALLOWED_REPOSITORIES = 'FreeCAD/FreeCAD';
 const WORKER_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -132,12 +133,95 @@ export async function ensureKvNamespace({
   }
 }
 
+export async function listD1Databases({
+  fetchImpl = globalThis.fetch,
+  accountId,
+  apiToken,
+  name,
+  pageSize = 1000,
+}) {
+  const databases = [];
+
+  for (let page = 1; page <= 20; page += 1) {
+    const params = new URLSearchParams({page: String(page), per_page: String(pageSize)});
+    if (name) params.set('name', name);
+    const payload = await cloudflareRequest({
+      fetchImpl,
+      accountId: required(accountId, 'CLOUDFLARE_ACCOUNT_ID'),
+      apiToken: required(apiToken, 'CLOUDFLARE_API_TOKEN'),
+      path: `/d1/database?${params.toString()}`,
+      method: 'GET',
+    });
+    const result = Array.isArray(payload.result) ? payload.result : [];
+    databases.push(...result);
+    const info = payload.result_info;
+    if (!info || page >= Number(info.total_pages || page) || result.length === 0) break;
+  }
+
+  return databases;
+}
+
+export async function ensureD1Database({
+  fetchImpl = globalThis.fetch,
+  accountId,
+  apiToken,
+  name = DEFAULT_DATABASE_NAME,
+}) {
+  const normalizedAccountId = required(accountId, 'CLOUDFLARE_ACCOUNT_ID');
+  const normalizedApiToken = required(apiToken, 'CLOUDFLARE_API_TOKEN');
+  const normalizedName = required(name, 'REVIEWSTACK_MCP_D1_NAME');
+  const request = options =>
+    cloudflareRequest({
+      fetchImpl,
+      accountId: normalizedAccountId,
+      apiToken: normalizedApiToken,
+      ...options,
+    });
+
+  const findExisting = async () =>
+    (
+      await listD1Databases({
+        fetchImpl,
+        accountId: normalizedAccountId,
+        apiToken: normalizedApiToken,
+        name: normalizedName,
+      })
+    ).find(database => database.name === normalizedName && (database.uuid || database.id));
+
+  const existing = await findExisting();
+  if (existing) {
+    return {id: existing.uuid || existing.id, name: normalizedName, created: false};
+  }
+
+  try {
+    const payload = await request({
+      path: '/d1/database',
+      method: 'POST',
+      body: JSON.stringify({name: normalizedName}),
+    });
+    const id = payload.result?.uuid || payload.result?.id;
+    if (typeof id !== 'string' || id.length === 0) {
+      throw new Error('Cloudflare did not return a D1 database ID.');
+    }
+    return {id, name: normalizedName, created: true};
+  } catch (error) {
+    const concurrent = await findExisting();
+    if (concurrent) {
+      return {id: concurrent.uuid || concurrent.id, name: normalizedName, created: false};
+    }
+    throw error;
+  }
+}
+
 function tomlString(value) {
   return JSON.stringify(String(value));
 }
 
 export function buildWranglerConfig({
   kvNamespaceId,
+  d1DatabaseId,
+  d1DatabaseName = DEFAULT_DATABASE_NAME,
+  migrationsDir,
   allowedRepositories = DEFAULT_ALLOWED_REPOSITORIES,
   resource,
   githubOAuthCallbackUrl,
@@ -172,6 +256,17 @@ export function buildWranglerConfig({
 
   lines.push('', '[[kv_namespaces]]', 'binding = "MCP_KV"', `id = ${tomlString(normalizedId)}`, '');
 
+  if (d1DatabaseId) {
+    lines.push(
+      '[[d1_databases]]',
+      'binding = "REVIEWS_DB"',
+      `database_name = ${tomlString(d1DatabaseName)}`,
+      `database_id = ${tomlString(required(d1DatabaseId, 'D1 database ID'))}`,
+      ...(migrationsDir ? [`migrations_dir = ${tomlString(migrationsDir)}`] : []),
+      '',
+    );
+  }
+
   return `${lines.join('\n')}\n`;
 }
 
@@ -203,8 +298,17 @@ export async function provision({
     apiToken: env.CLOUDFLARE_API_TOKEN,
     title: env.REVIEWSTACK_MCP_KV_TITLE || DEFAULT_NAMESPACE_TITLE,
   });
+  const database = await ensureD1Database({
+    fetchImpl,
+    accountId: env.CLOUDFLARE_ACCOUNT_ID,
+    apiToken: env.CLOUDFLARE_API_TOKEN,
+    name: env.REVIEWSTACK_MCP_D1_NAME || DEFAULT_DATABASE_NAME,
+  });
   const config = buildWranglerConfig({
     kvNamespaceId: namespace.id,
+    d1DatabaseId: database.id,
+    d1DatabaseName: database.name,
+    migrationsDir: join(WORKER_ROOT, 'migrations'),
     allowedRepositories: env.REVIEWSTACK_MCP_ALLOWED_REPOSITORIES || DEFAULT_ALLOWED_REPOSITORIES,
     resource,
     githubOAuthCallbackUrl: callback,
@@ -219,16 +323,18 @@ export async function provision({
   writeFileSync(outputPath, config, 'utf8');
   writeGitHubOutput('config_path', outputPath, env);
   writeGitHubOutput('kv_namespace_created', String(namespace.created), env);
+  writeGitHubOutput('d1_database_id', database.id, env);
+  writeGitHubOutput('d1_database_created', String(database.created), env);
 
-  return {...namespace, configPath: outputPath};
+  return {...namespace, ...database, configPath: outputPath};
 }
 
 async function main() {
   const result = await provision();
   console.log(
-    `${
-      result.created ? 'Created' : 'Reusing'
-    } Cloudflare KV namespace for ReviewStack MCP; generated ${result.configPath}.`,
+    `${result.created ? 'Created' : 'Reusing'} Cloudflare ReviewStack MCP storage; generated ${
+      result.configPath
+    }.`,
   );
 }
 

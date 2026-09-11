@@ -215,7 +215,7 @@ API and OAuth origins (and the MCP origin when the setup page is enabled).
 
 ## ChatGPT Web integration
 
-The optional `mcp-worker/` service exposes ReviewStack as a read-only MCP app
+The `mcp-worker/` service exposes ReviewStack as a read-only MCP app
 for ChatGPT Web. This lets a user sign in to ChatGPT with an existing Plus
 subscription and ask ChatGPT to review a pull request without putting an
 OpenAI API key in ReviewStack. The service performs a separate GitHub OAuth
@@ -224,7 +224,9 @@ there are no GitHub write tools in the initial version.
 
 See [`mcp-worker/README.md`](mcp-worker/README.md) for deployment and ChatGPT
 connection instructions, or open the hosted [MCP setup guide](https://tritao.github.io/ReviewStack/mcp)
-for the interactive checklist and worker health status.
+for the interactive checklist and worker health status. After the D1-backed
+review workspace is enabled, authorized users can browse saved drafts at
+`https://tritao.github.io/ReviewStack/reviews`.
 
 The browser smoke test verifies the login and OAuth callback routes. In CI it
 uses the workflow's short-lived, read-only `GITHUB_TOKEN` to exercise the

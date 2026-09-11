@@ -169,6 +169,45 @@ test('completes ChatGPT PKCE login through GitHub and serves MCP tools', async (
   const initialize = await initializeResponse.json();
   assert.equal(initialize.result.serverInfo.name, 'reviewstack');
 
+  const toolsListResponse = await handleRequest(
+    new Request('https://mcp.example.test/mcp', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json, text/event-stream',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({jsonrpc: '2.0', id: 2, method: 'tools/list', params: {}}),
+    }),
+    env,
+    githubFetch,
+  );
+  const toolsList = await toolsListResponse.json();
+  const toolNames = toolsList.result.tools.map(tool => tool.name);
+  assert.ok(toolNames.includes('reviewstack_create_review_draft'));
+  assert.ok(toolNames.includes('reviewstack_list_reviews'));
+  assert.ok(toolNames.includes('reviewstack_get_review'));
+  assert.ok(toolNames.includes('reviewstack_update_finding'));
+  assert.ok(toolNames.includes('reviewstack_add_review_note'));
+
+  const promptsListResponse = await handleRequest(
+    new Request('https://mcp.example.test/mcp', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json, text/event-stream',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({jsonrpc: '2.0', id: 3, method: 'prompts/list', params: {}}),
+    }),
+    env,
+    githubFetch,
+  );
+  const promptsList = await promptsListResponse.json();
+  assert.ok(
+    promptsList.result.prompts.some(prompt => prompt.name === 'reviewstack_review_pull_request'),
+  );
+
   const toolResponse = await handleRequest(
     new Request('https://mcp.example.test/mcp', {
       method: 'POST',
@@ -179,7 +218,7 @@ test('completes ChatGPT PKCE login through GitHub and serves MCP tools', async (
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
-        id: 2,
+        id: 4,
         method: 'tools/call',
         params: {
           name: 'reviewstack_get_pull_request',
@@ -193,6 +232,29 @@ test('completes ChatGPT PKCE login through GitHub and serves MCP tools', async (
   assert.equal(toolResponse.status, 200);
   const toolResult = await toolResponse.json();
   assert.equal(toolResult.result.structuredContent.number, 123);
+});
+
+test('authenticates the browser review API with a GitHub token', async () => {
+  const env = makeEnv();
+  const fetchImpl = async (url, init) => {
+    if (url === 'https://api.github.com/user') {
+      assert.equal(init.headers.Authorization, 'Bearer browser-github-token');
+      return Response.json({id: 42, login: 'reviewer'});
+    }
+    if (url === 'https://api.github.com/repos/FreeCAD/FreeCAD') {
+      return Response.json({full_name: 'FreeCAD/FreeCAD'});
+    }
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  const response = await handleRequest(
+    new Request('https://mcp.example.test/api/reviews?owner=FreeCAD&repo=FreeCAD', {
+      headers: {Authorization: 'Bearer browser-github-token'},
+    }),
+    env,
+    fetchImpl,
+  );
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, 'reviews_db_unconfigured');
 });
 
 function base64Url(bytes) {

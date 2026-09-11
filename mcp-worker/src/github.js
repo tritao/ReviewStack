@@ -96,6 +96,11 @@ class GitHubClient {
     return normalizePullRequest(value);
   }
 
+  async assertRepositoryAccess(owner, repo) {
+    this.repository(owner, repo);
+    await this.json(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);
+  }
+
   async pullRequestCommits(owner, repo, number, limit = MAX_FILES) {
     this.repository(owner, repo);
     validateNumber(number, 'pull request number');

@@ -14,6 +14,7 @@ import LoginDialog from './LoginDialog';
 import McpSetupPage from './McpSetupPage';
 import NotificationBanner from './NotificationBanner';
 import PrimerStyles from './PrimerStyles';
+import ReviewsPage from './ReviewsPage';
 import SplitDiffViewPrimerStyles from './SplitDiffViewPrimerStyles';
 import TextMateStyles from './TextMateStyles';
 import {
@@ -35,6 +36,7 @@ const UserHomePage = React.lazy(() => import('./UserHomePage'));
 type Page =
   | {type: 'home'}
   | {type: 'mcp'; endpoint: string}
+  | {type: 'reviews'; endpoint: string; reviewId?: string}
   | {
       type: 'project';
       org: string;
@@ -96,7 +98,7 @@ function AuthenticatedContent({page}: {page: Exclude<Page, {type: 'mcp'}>}): Rea
   // Use loadable to get loading/error/data states
   const loadableTokenAtom = useMemo(() => loadable(gitHubTokenPersistenceAtom), []);
   const tokenLoadable = useAtomValue(loadableTokenAtom);
-  const orgAndRepo = page.type !== 'home' ? {org: page.org, repo: page.repo} : null;
+  const orgAndRepo = 'org' in page ? {org: page.org, repo: page.repo} : null;
 
   switch (tokenLoadable.state) {
     case 'hasData': {
@@ -106,7 +108,7 @@ function AuthenticatedContent({page}: {page: Exclude<Page, {type: 'mcp'}>}): Rea
           <AppHeader orgAndRepo={orgAndRepo} />
           <ErrorBoundary>
             <React.Suspense fallback={<CenteredSpinner message="Loading page…" />}>
-              <AppContent page={page} />
+              <AppContent page={page} token={token} />
             </React.Suspense>
           </ErrorBoundary>
         </>
@@ -153,19 +155,21 @@ const ThemeListener = React.memo(function ThemeListener(): React.ReactElement {
   return <></>;
 });
 
-const AppContent = React.memo(({page}: {page: Page}): React.ReactElement => {
-  switch (page.type) {
-    case 'mcp':
-      return <McpSetupPage endpoint={page.endpoint} />;
-    case 'home':
-      return <UserHomePage />;
-    case 'project':
-      return <GitHubProjectPage {...page} />;
-    case 'pulls':
-      return <PullsView {...page} />;
-    case 'pr':
-      return <PullRequestLayout {...page} />;
-    case 'commit':
-      return <CommitView {...page} />;
-  }
-});
+const AppContent = React.memo(
+  ({page, token}: {page: Exclude<Page, {type: 'mcp'}>; token: string}): React.ReactElement => {
+    switch (page.type) {
+      case 'home':
+        return <UserHomePage />;
+      case 'reviews':
+        return <ReviewsPage endpoint={page.endpoint} token={token} reviewId={page.reviewId} />;
+      case 'project':
+        return <GitHubProjectPage {...page} />;
+      case 'pulls':
+        return <PullsView {...page} />;
+      case 'pr':
+        return <PullRequestLayout {...page} />;
+      case 'commit':
+        return <CommitView {...page} />;
+    }
+  },
+);

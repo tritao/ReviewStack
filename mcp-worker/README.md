@@ -8,7 +8,8 @@ need an OpenAI API key.
 The worker uses OAuth 2.1 for the ChatGPT connection. The authorization flow
 redirects to GitHub, stores the resulting GitHub access token in KV, and gives
 ChatGPT a short-lived MCP access token. Only read-only review tools are
-exposed.
+exposed against GitHub; saved review drafts and reviewer notes are stored in
+the D1 review database and never posted to GitHub.
 
 The bundled OAuth broker is deliberately narrow and suitable for a personal
 instance. For a multi-user deployment, replace it with an established OAuth
@@ -29,19 +30,33 @@ instance. For a multi-user deployment, replace it with an established OAuth
    Add the returned ID to `wrangler.toml` by uncommenting the `MCP_KV`
    binding.
 
-3. Set `MCP_ALLOWED_REPOSITORIES` in `wrangler.toml` to comma-separated
+3. Create a D1 database for shared review drafts:
+
+   ```bash
+   npx wrangler d1 create reviewstack-reviews
+   ```
+
+   Add the returned ID to `wrangler.toml` by uncommenting the `REVIEWS_DB`
+   binding and keep `migrations_dir = "migrations"`. Then apply the checked-in
+   migration:
+
+   ```bash
+   npx wrangler d1 migrations apply REVIEWS_DB --remote
+   ```
+
+4. Set `MCP_ALLOWED_REPOSITORIES` in `wrangler.toml` to comma-separated
    `owner/repository` names, or an organization rule such as `FreeCAD/*`, for
    the repositories this instance may review. The worker origin is used
    automatically for `MCP_RESOURCE` and the GitHub callback; set those optional
    variables only when deploying behind a custom domain.
-4. Store the GitHub OAuth credentials as Worker secrets:
+5. Store the GitHub OAuth credentials as Worker secrets:
 
    ```bash
    npx wrangler secret put GITHUB_CLIENT_ID
    npx wrangler secret put GITHUB_CLIENT_SECRET
    ```
 
-5. Deploy:
+6. Deploy:
 
    ```bash
    npm install
@@ -57,8 +72,8 @@ repository variable `CLOUDFLARE_WORKER_CI_ENABLED` is set to `true`.
 
 Configure these GitHub repository secrets:
 
-- `CLOUDFLARE_API_TOKEN`: an account token with Workers Scripts edit and Workers
-  KV Storage edit permissions.
+- `CLOUDFLARE_API_TOKEN`: an account token with Workers Scripts edit, Workers
+  KV Storage edit, and D1 read/write permissions.
 - `CLOUDFLARE_ACCOUNT_ID`: the Cloudflare account ID.
 - `REVIEWSTACK_GITHUB_CLIENT_ID` and `REVIEWSTACK_GITHUB_CLIENT_SECRET`: the
   GitHub OAuth App credentials.
@@ -77,12 +92,15 @@ Configure these repository variables:
 - `REVIEWSTACK_MCP_HEALTH_URL`: optional `/health` URL to verify after deploy.
 - `REVIEWSTACK_MCP_KV_TITLE`: optional stable KV namespace title; it defaults to
   `reviewstack-mcp`.
+- `REVIEWSTACK_MCP_D1_NAME`: optional stable D1 database name; it defaults to
+  `reviewstack-reviews`.
 
 The workflow uses `scripts/provision-ci.mjs` to find or create the named KV
-namespace and writes a temporary Wrangler config containing its ID. It then
-updates the Worker secrets and deploys with that config; no namespace IDs or
-credentials are committed to the repository. The script is safe to rerun and
-handles concurrent first deployments.
+namespace and D1 database, applies the checked-in migrations, and writes a
+temporary Wrangler config containing their IDs. It then updates the Worker
+secrets and deploys with that config; no namespace/database IDs or credentials
+are committed to the repository. The script is safe to rerun and handles
+concurrent first deployments.
 
 CI can provision the ReviewStack service, but it cannot sign in to ChatGPT or
 approve the GitHub OAuth consent on your behalf. After the first deployment,
@@ -103,7 +121,10 @@ Try a prompt such as:
 > regression risk, and cite exact files and lines.
 
 The first version deliberately has no GitHub write tools. Drafted comments
-must be copied and submitted by a human in ReviewStack or GitHub.
+must be copied and submitted by a human in ReviewStack or GitHub. To save a
+draft for other authorized reviewers, ask ChatGPT to call
+`reviewstack_create_review_draft`; use the ReviewStack **Saved reviews** page
+to browse them.
 
 ## Local checks
 
@@ -113,4 +134,5 @@ npx wrangler deploy --dry-run
 ```
 
 The service requires a configured `MCP_KV` binding at runtime. Do not expose a
-GitHub token or an OpenAI API key in the Pages bundle.
+GitHub token or an OpenAI API key in the Pages bundle. Shared review tools also
+require the `REVIEWS_DB` binding and applied migrations.

@@ -16,6 +16,7 @@ export const DEFAULT_MCP_ENDPOINT = 'https://reviewstack-mcp.joao-9f7.workers.de
 type Health = {
   ok?: boolean;
   kvConfigured?: boolean;
+  reviewsDbConfigured?: boolean;
   githubOAuthConfigured?: boolean;
 };
 
@@ -52,7 +53,10 @@ export default function McpSetupPage({endpoint}: Props): React.ReactElement {
         throw new Error('Worker health check did not report ok.');
       }
       setStatus({
-        state: health.kvConfigured && health.githubOAuthConfigured ? 'ready' : 'degraded',
+        state:
+          health.kvConfigured && health.reviewsDbConfigured && health.githubOAuthConfigured
+            ? 'ready'
+            : 'degraded',
         health,
       });
     } catch (error) {
@@ -181,8 +185,8 @@ export default function McpSetupPage({endpoint}: Props): React.ReactElement {
             </li>
             <li>
               <Text>
-                Create a Cloudflare API token with Workers Scripts Edit and Workers KV Storage Edit
-                permissions at{' '}
+                Create a Cloudflare API token with Workers Scripts Edit, Workers KV Storage Edit,
+                and D1 read/write permissions at{' '}
                 <Link href="https://dash.cloudflare.com/profile/api-tokens">
                   dash.cloudflare.com/profile/api-tokens
                 </Link>
@@ -214,6 +218,7 @@ export default function McpSetupPage({endpoint}: Props): React.ReactElement {
               'REVIEWSTACK_MCP_ALLOWED_REPOSITORIES=FreeCAD/*',
               'REVIEWSTACK_MCP_GITHUB_OAUTH_SCOPE=public_repo read:user',
               `REVIEWSTACK_MCP_HEALTH_URL=${workerOrigin(mcpEndpoint)}/health`,
+              'REVIEWSTACK_MCP_D1_NAME=reviewstack-reviews',
             ].join('\n')}
           </Box>
           <Button
@@ -239,8 +244,8 @@ export default function McpSetupPage({endpoint}: Props): React.ReactElement {
             exact files and lines.
           </Box>
           <Text as="p" color="fg.muted" fontSize={0}>
-            The MCP tools are read-only. Copy any suggested comments into ReviewStack or GitHub
-            yourself before submitting them.
+            GitHub access remains read-only. ChatGPT can save drafts and notes in the ReviewStack
+            workspace, but nothing is submitted to GitHub without a human.
           </Text>
         </Box>
       </Box>
@@ -270,14 +275,16 @@ function Status({status}: {status: WorkerStatus}): React.ReactElement {
       <Flash variant="warning" sx={{mb: 2}}>
         Worker is reachable, but CI setup is incomplete. KV:{' '}
         {status.health.kvConfigured ? 'ready' : 'missing'}; GitHub OAuth:{' '}
-        {status.health.githubOAuthConfigured ? 'ready' : 'missing'}.
+        {status.health.githubOAuthConfigured ? 'ready' : 'missing'}; Reviews DB:{' '}
+        {status.health.reviewsDbConfigured ? 'ready' : 'missing'}.
       </Flash>
     );
   }
 
   return (
     <Flash variant="success" sx={{mb: 2}}>
-      <CheckCircleIcon aria-hidden="true" /> Worker is ready. KV and GitHub OAuth are configured.
+      <CheckCircleIcon aria-hidden="true" /> Worker is ready. KV, Reviews DB, and GitHub OAuth are
+      configured.
     </Flash>
   );
 }

@@ -23,3 +23,11 @@ MCP_ALLOWED_REPOSITORIES = "FreeCAD/FreeCAD"
 # [[kv_namespaces]]
 # binding = "MCP_KV"
 # id = "replace-with-kv-namespace-id"
+#
+# The CI workflow provisions this database binding in a temporary config.
+# For local/manual deployments, create the database and uncomment this block.
+# [[d1_databases]]
+# binding = "REVIEWS_DB"
+# database_name = "reviewstack-reviews"
+# database_id = "replace-with-d1-database-id"
+# migrations_dir = "migrations"
