@@ -23,6 +23,7 @@ import {
 
 const MCP_PATH = '/mcp';
 const AUTH_SCOPE = 'review:read';
+const defaultFetch = (...args) => globalThis.fetch(...args);
 
 export default {
   async fetch(request, env) {
@@ -30,7 +31,7 @@ export default {
   },
 };
 
-export async function handleRequest(request, env, fetchImpl = fetch) {
+export async function handleRequest(request, env, fetchImpl = defaultFetch) {
   const url = new URL(request.url);
 
   if (request.method === 'OPTIONS') {
@@ -107,7 +108,7 @@ export async function handleRequest(request, env, fetchImpl = fetch) {
   }
 }
 
-export function createMcpServer(identity, env, fetchImpl = fetch) {
+export function createMcpServer(identity, env, fetchImpl = defaultFetch) {
   const client = createGitHubClient({token: identity.githubToken, env, fetchImpl});
   const server = new McpServer({name: 'reviewstack', version: '0.1.0'});
   const security = {securitySchemes: [{type: 'oauth2', scopes: [AUTH_SCOPE]}]};

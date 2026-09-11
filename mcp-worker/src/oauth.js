@@ -3,6 +3,7 @@ const STATE_TTL_SECONDS = 10 * 60;
 const CODE_TTL_SECONDS = 2 * 60;
 const ACCESS_TTL_SECONDS = 60 * 60;
 const GITHUB_TOKEN_TTL_SECONDS = 365 * 24 * 60 * 60;
+const defaultFetch = (...args) => globalThis.fetch(...args);
 
 export function getIssuer(request, env) {
   return stripTrailingSlash(env.OAUTH_ISSUER || new URL(request.url).origin);
@@ -85,7 +86,7 @@ export async function authenticateRequest(request, env) {
  * Accepting both here lets the browser and MCP share one review store without
  * persisting the browser token in Cloudflare storage.
  */
-export async function authenticateReviewRequest(request, env, fetchImpl = fetch) {
+export async function authenticateReviewRequest(request, env, fetchImpl = defaultFetch) {
   const token = bearerToken(request);
   if (token == null) {
     return {response: unauthorizedResponse(request, env)};
@@ -208,7 +209,7 @@ export async function handleAuthorize(request, env) {
   });
 }
 
-export async function handleGitHubCallback(request, env, fetchImpl = fetch) {
+export async function handleGitHubCallback(request, env, fetchImpl = defaultFetch) {
   const url = new URL(request.url);
   const oauthState = url.searchParams.get('state');
   const githubCode = url.searchParams.get('code');

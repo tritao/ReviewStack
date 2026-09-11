@@ -7,6 +7,7 @@ const MAX_PAGE_COUNT = 10;
 const MAX_TEXT_LENGTH = 100_000;
 const MAX_PATCH_LENGTH = 32_000;
 const MAX_FILES = 200;
+const defaultFetch = (...args) => globalThis.fetch(...args);
 
 export class ReviewStackError extends Error {
   constructor(message, code = 'reviewstack_error') {
@@ -16,7 +17,7 @@ export class ReviewStackError extends Error {
   }
 }
 
-export function createGitHubClient({token, env, fetchImpl = fetch}) {
+export function createGitHubClient({token, env, fetchImpl = defaultFetch}) {
   if (typeof token !== 'string' || token.length === 0) {
     throw new ReviewStackError('No GitHub credential is available.', 'github_auth_required');
   }
