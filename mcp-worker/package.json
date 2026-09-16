@@ -9,9 +9,9 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "zod": "^4.6.2"
+    "zod": "^4.6.4"
   },
   "devDependencies": {
-    "wrangler": "^4.131.0"
+    "wrangler": "^4.131.1"
   }
 }
